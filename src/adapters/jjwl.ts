@@ -14,7 +14,7 @@ import { httpGet } from '../http.js';
 import type { SourceAdapter, RawEvent } from '../types.js';
 import { parseEnRange } from '../normalize/text-dates.js';
 import { countryCodeOfName } from '../normalize/countries.js';
-import { parsePlace } from '../normalize/places.js';
+import { parsePlace, regionCode } from '../normalize/places.js';
 import { kidsFromTitle } from '../normalize/classify.js';
 
 const BASE = 'https://www.jjworldleague.com';
@@ -82,9 +82,23 @@ export function parseEventPage(slug: string, html: string): RawEvent | undefined
   // CEP e estado ficam por conta dele.
   const addrParts = (address ?? '').split(',').map((p) => p.trim()).filter(Boolean);
   const countryName = addrParts[addrParts.length - 1];
-  const countryCode = countryCodeOfName(countryName);
-  const withoutStreet = addrParts.filter((p, i) => !(i === 0 && /^\d+\s+\S/.test(p))).join(', ');
-  const place = withoutStreet ? parsePlace(withoutStreet, countryCode, countryName) : {};
+  let countryCode = countryCodeOfName(countryName);
+  let countryHuman = countryName;
+  // "81 Hamilton Ave, Trenton, NJ 08611": sem país escrito, mas estado + ZIP de
+  // 5 dígitos é o formato postal dos EUA — é dedução, não chute.
+  const usTail = (address ?? '').match(/\b([A-Z]{2})\s+\d{5}(?:-\d{4})?$/)?.[1];
+  if (!countryCode && usTail && regionCode(usTail, 'US')) {
+    countryCode = 'US';
+    countryHuman = undefined;
+  }
+  const street = addrParts[0] && /^\d+\s+\S/.test(addrParts[0]) ? addrParts[0] : undefined;
+  const withoutStreet = addrParts.filter((p) => p !== street).join(', ');
+  const place = withoutStreet ? parsePlace(withoutStreet, countryCode, countryHuman) : {};
+  // "248 W Fremont St. Stockton, CA 95203": cidade colada na rua, depois do tipo de via.
+  if (!place.city && street) {
+    const m = street.match(/\b(?:St|Ave|Blvd|Dr|Rd|Fwy|Hwy|Ln|Pkwy|Ct|Way|Pl)\.?\s+([A-Z][A-Za-z .'-]+)$/);
+    if (m) place.city = m[1]!.trim();
+  }
 
   const nogi = /\bno-?gi\b/i.test(`${slug} ${title}`);
   const gi = !nogi && /\bgi\b/i.test(`${slug} ${title}`);

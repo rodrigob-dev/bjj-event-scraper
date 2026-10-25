@@ -54,6 +54,21 @@ describe('jjwl — menu de torneios + página por evento', () => {
     const out = jjwlAdapter.parse({ list: '', pages: { 'texas-finals-2026-gi-adults': gi, broken: '<html></html>' } });
     expect(out).toHaveLength(1);
   });
+
+  // Páginas reais da coleta de 2026-10-25: o endereço nem sempre traz o país, e
+  // uma delas cola a cidade na rua. Só o trecho rótulo → valor importa aqui.
+  const page = (address: string) =>
+    `<html><head><meta property="og:title" content="Jiu Jitsu World League -  X Open 2026 GI Adults - Jiu Jitsu World League event registration"></head><body>` +
+    `<div class="font-weight-bold mb-2	">Event Day</div><div><i class="fas fa-calendar-alt"></i> November  7th, 2026</div>` +
+    `<div class="font-weight-bold mb-2	">Event Address</div><div><i class="fas fa-location"></i> ${address}</div></body></html>`;
+
+  it('estado + ZIP sem país escrito é EUA; cidade colada na rua é recuperada; og:title serve de título', () => {
+    expect(parseEventPage('a', page('81 Hamilton Ave, Trenton, NJ 08611'))).toMatchObject({ title: 'X Open 2026 GI Adults', city: 'Trenton', state: 'NJ', countryCode: 'US' });
+    expect(parseEventPage('b', page('248 W Fremont St. Stockton, CA 95203'))).toMatchObject({ city: 'Stockton', state: 'CA', countryCode: 'US' });
+    expect(parseEventPage('c', page('701 W Lime St, Lakeland, FL 33815, USA'))).toMatchObject({ city: 'Lakeland', state: 'FL', countryCode: 'US' });
+    const abroad = parseEventPage('d', page('Rua X, 10, Lisboa'))!;
+    expect(abroad.countryCode).toBeUndefined(); // sem país e sem ZIP dos EUA: não chuta
+  });
 });
 
 describe('fjjrio — "Próximos Eventos" da home + prazo da página', () => {
