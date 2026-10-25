@@ -3,6 +3,8 @@
     {
       "id": 1,
       "name": "Rio Fall International Open IBJJF Jiu-Jitsu Championship 2026",
+      "championshipType": "International Open",
+      "region": "South America",
       "year": 2026,
       "month": "Jun",
       "startDay": 5,
@@ -11,7 +13,8 @@
       "local": "Centro Esportivo",
       "city": "Rio de Janeiro",
       "status": "published",
-      "pageUrl": "/events/rio-fall-2026"
+      "pageUrl": "/events/rio-fall-2026",
+      "eventGroups": [{ "id": 5, "name": "International Open" }]
     },
     {
       "id": 2,
@@ -34,6 +37,80 @@
       "city": "São Paulo",
       "status": "published",
       "pageUrl": null
+    },
+    {
+      "id": 4,
+      "name": "Los Angeles Winter International Open IBJJF Jiu-Jitsu Championship 2027",
+      "region": "North America",
+      "year": 2027,
+      "month": "Jan",
+      "startDay": 30,
+      "endDay": 1,
+      "intervalDays": "Jan 30 - Feb 1",
+      "local": "Pyramid",
+      "city": "Los Angeles",
+      "status": "published",
+      "pageUrl": "/events/la-winter-2027",
+      "eventGroups": [{ "id": 5, "name": "International Open" }]
+    },
+    {
+      "id": 5,
+      "name": "New York Kids International Open IBJJF Jiu-Jitsu No-Gi Championship 2026",
+      "region": "North America",
+      "year": 2026,
+      "month": "Dec",
+      "startDay": 10,
+      "endDay": 12,
+      "intervalDays": "Dec 10 - Dec 12",
+      "local": "David S. Mack Sports Complex",
+      "city": "Hempstead  ",
+      "status": "published",
+      "pageUrl": "/events/ny-kids-nogi-2026",
+      "eventGroups": [{ "id": 3, "name": "No-Gi" }, { "id": 4, "name": "Kids" }]
+    },
+    {
+      "id": 6,
+      "name": "World IBJJF Jiu-Jitsu Championship 2026",
+      "region": "North America",
+      "year": 2026,
+      "month": "Dec",
+      "startDay": 30,
+      "endDay": 2,
+      "intervalDays": "Dec 30* - Jan 2",
+      "local": "Walter Pyramid",
+      "city": "Long Beach",
+      "status": "published",
+      "pageUrl": "/events/worlds-2026",
+      "eventGroups": [{ "id": 1, "name": "Grand Slam" }]
+    },
+    {
+      "id": 7,
+      "name": "Curitiba Summer International Open IBJJF Jiu-Jitsu Championship 2027",
+      "region": "South America",
+      "year": 2027,
+      "month": "Feb",
+      "startDay": 27,
+      "endDay": 28,
+      "intervalDays": "Feb 27 - Feb 28",
+      "local": "Ginásio do Tarumã",
+      "city": "Curitiba Summer",
+      "status": "published",
+      "pageUrl": "/events/curitiba-summer-2027",
+      "eventGroups": []
+    },
+    {
+      "id": 8,
+      "name": "Mystery City Open 2026",
+      "region": "Europe",
+      "year": 2026,
+      "month": "Nov",
+      "startDay": 7,
+      "endDay": 7,
+      "intervalDays": "Nov 7",
+      "local": "Arena X",
+      "city": "Atlantis",
+      "status": "published",
+      "pageUrl": "/events/mystery-2026"
     }
   ]
 }

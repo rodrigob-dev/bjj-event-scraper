@@ -1,0 +1,51 @@
+{
+  "infosite_events": [
+    {
+      "id": 2968,
+      "name": "Campeonato Brasileiro de Jiu-Jitsu Sem Kimono (idade 04 a 15 anos) 2026",
+      "championshipType": "Brasileiro kids",
+      "region": "North America",
+      "startDay": 21,
+      "endDay": 21,
+      "intervalDays": "21 de set",
+      "month": "set",
+      "year": 2026,
+      "local": "Arena Carioca 1",
+      "city": "Rio de Janeiro ",
+      "logoBaseColor": "#009500",
+      "status": "published",
+      "pageUrl": "/events/brasileiro-sem-kimono-kids-2026",
+      "eventGroups": [{ "id": 3, "name": "No-Gi" }, { "id": 4, "name": "Kids" }, { "id": 2, "name": "National" }]
+    },
+    {
+      "id": 3120,
+      "name": "Campeonato Sul-Brasileiro de Jiu-Jitsu 2027",
+      "region": "South America",
+      "startDay": 30,
+      "endDay": 1,
+      "intervalDays": "30 jan até 1 fev",
+      "month": "jan",
+      "year": 2027,
+      "local": "Ginásio",
+      "city": "Balneário Camburiú",
+      "status": "published",
+      "pageUrl": "/events/sul-brasileiro-2027",
+      "eventGroups": []
+    },
+    {
+      "id": 3121,
+      "name": "Campeonato Brasileiro de Jiu-Jitsu 2027",
+      "region": "South America",
+      "startDay": 24,
+      "endDay": 2,
+      "intervalDays": "24* abr até 2 mai",
+      "month": "abr",
+      "year": 2027,
+      "local": "Ginásio do Ibirapuera",
+      "city": "Barueri ",
+      "status": "upcoming",
+      "pageUrl": "/events/brasileiro-2027",
+      "eventGroups": [{ "id": 1, "name": "Grand Slam" }, { "id": 2, "name": "National" }]
+    }
+  ]
+}
