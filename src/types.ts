@@ -14,11 +14,36 @@ export interface BJJEvent {
   icon: string;
 }
 
+// Modalidade, derivada das categorias da fonte. O feed só publica bjj + grappling
+// (ver EMITTED_SPORTS no adapter); os outros valores existem para o mapeamento
+// ser auditável e a ampliação ser uma linha.
+export type Sport = 'bjj' | 'grappling' | 'judo' | 'wrestling' | 'mma' | 'other';
+
+// Campos v2 (contrato events-v2): todos opcionais e aditivos — um consumidor v1
+// continua lendo o JSON, e cada fonte preenche só o que tem. Ausente significa
+// "desconhecido", nunca um chute.
+export interface EventDetails {
+  sourceId?: string; // chave estável da fonte: "smoothcomp:27746", "ibjjf:3121"
+  venue?: string; // nome da arena/ginásio — nunca cidade
+  city?: string; // só a cidade, sem UF/estado grudado
+  state?: string; // UF brasileira ou código de estado US/CA/AU (2–3 letras maiúsculas)
+  countryCode?: string; // ISO 3166-1 alpha-2
+  lat?: number; // WGS84
+  lng?: number;
+  gi?: boolean;
+  nogi?: boolean;
+  kids?: boolean;
+  organizer?: string; // quem organiza, p/ o chip: "IBJJF", "CBJJ", "NAGA", host do Smoothcomp
+  sport?: Sport;
+  registrationDeadlineISO?: string; // YYYY-MM-DD, só quando a fonte declara — nunca a data do evento
+}
+
 // Evento normalizado e versionado em data/events.json.
 // Estende BJJEvent com proveniência. O app pode ignorar os campos extras
 // ou usar `sourceUrl` como href do CTA.
-export interface ScrapedEvent extends BJJEvent {
+export interface ScrapedEvent extends BJJEvent, EventDetails {
   dateISO: string; // "2026-01-24" — canônico p/ ordenar e dedup
+  endDateISO?: string; // último dia; igual a dateISO em evento de 1 dia
   source: string; // "ibjjf" | "cbjj" | "smoothcomp"
   sourceUrl: string; // URL de detalhe/inscrição
   imageUrl?: string; // foto/capa real do evento (ex: Smoothcomp cover_image)
@@ -33,9 +58,12 @@ export interface ScrapedEvent extends BJJEvent {
 export type FetchStrategy = 'http' | 'browser';
 
 // Evento cru, como sai de uma fonte — antes de normalizar data/dedup.
-export interface RawEvent {
+// Os campos v2 (EventDetails) já vêm estruturados do adapter, que é quem
+// conhece o formato da fonte; o normalizador só valida e repassa.
+export interface RawEvent extends EventDetails {
   title: string;
   rawDate: string; // texto como veio: "Jan 24, 2026" / "24/01/2026"
+  rawEndDate?: string; // último dia, mesmo formato; ausente = evento de 1 dia
   location: string;
   url: string;
   typeHint?: string; // categoria da fonte, se houver

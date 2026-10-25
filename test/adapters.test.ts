@@ -39,11 +39,13 @@ describe('smoothcomp adapter', () => {
     expect(extractEventsArray(html)).toHaveLength(3);
   });
 
-  it('filtra apenas BR não-encerrados', () => {
+  it('cobertura mundial: mantém BR e GB, descarta encerrado', () => {
     const parsed = smoothcompAdapter.parse(html);
-    expect(parsed).toHaveLength(1); // GB excluído, BR-passado-encerrado excluído
+    expect(parsed).toHaveLength(2); // BR-passado-encerrado excluído; GB entra (v2)
     expect(parsed[0]!.title).toContain('PERNAMBUCANO');
     expect(parsed[0]!.url).toBe('https://fijjd.smoothcomp.com/en/event/100');
+    expect(parsed[0]!.location).toBe('Garanhuns, PE, Brazil'); // v1 intacto
+    expect(parsed[1]!.countryCode).toBe('GB');
   });
 });
 
