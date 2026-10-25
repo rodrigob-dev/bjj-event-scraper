@@ -40,28 +40,42 @@ export function extractEventSlugs(html: string): string[] {
   return [...seen];
 }
 
-/** Texto do <div> que segue o rótulo ("Event Day" → "November  7th, 2026"). */
-function valueAfterLabel($: cheerio.CheerioAPI, label: RegExp): string | undefined {
-  const el = $('div')
-    .filter((_, d) => label.test($(d).text().replace(/\s+/g, ' ').trim()))
-    .first();
-  if (!el.length) return undefined;
-  const v = el.next('div').text().replace(/\s+/g, ' ').trim();
-  return v || undefined;
+const clean = (s: string) => s.replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+
+/**
+ * Texto do <div> que segue o rótulo ("Event Day" → "November  7th, 2026"). Regex,
+ * não DOM: o parser HTML5 perde o bloco do título no documento inteiro (markup
+ * quebrado mais acima), e o padrão rótulo → <div><i/> valor é estável.
+ */
+function valueAfterLabel(html: string, label: string): string | undefined {
+  const re = new RegExp(`>\\s*${label}\\s*</div>\\s*<div[^>]*>\\s*(?:<i[^>]*>\\s*</i>)?\\s*([^<]+)`, 'i');
+  const v = html.match(re)?.[1];
+  return v ? clean(v) || undefined : undefined;
+}
+
+/** Título: o bloco event-name-font; senão o og:title sem o prefixo/sufixo do site. */
+function titleOf(html: string): string | undefined {
+  const block = html.match(/event-name-font[^>]*>\s*<h2>([^<]+)<\/h2>/i)?.[1];
+  if (block && clean(block)) return clean(block);
+  const og = html.match(/<meta property="og:title" content="([^"]*)"/i)?.[1];
+  if (!og) return undefined;
+  const t = clean(og)
+    .replace(/^Jiu Jitsu World League\s*-\s*/i, '')
+    .replace(/\s*-\s*Jiu Jitsu World League event registration$/i, '');
+  return t || undefined;
 }
 
 /** Uma página de evento → RawEvent; undefined quando falta título ou data. */
 export function parseEventPage(slug: string, html: string): RawEvent | undefined {
-  const $ = cheerio.load(html);
-  const title = $('.event-name-font h2').first().text().replace(/\s+/g, ' ').trim();
-  const dayText = valueAfterLabel($, /^Event Day$/i);
+  const title = titleOf(html);
+  const dayText = valueAfterLabel(html, 'Event Day');
   const range = dayText ? parseEnRange(dayText) : undefined;
   if (!title || !range) return undefined;
 
-  const address = valueAfterLabel($, /^Event Address$/i);
-  const deadlineText = valueAfterLabel($, /^Application deadline:?$/i);
+  const address = valueAfterLabel(html, 'Event Address');
+  const deadlineText = valueAfterLabel(html, 'Application deadline:?');
   const deadline = deadlineText ? parseEnRange(deadlineText)?.start : undefined;
-  const image = $('meta[property="og:image"]').attr('content');
+  const image = html.match(/<meta property="og:image" content="([^"]*)"/i)?.[1];
 
   // "2601 Avenue of the Stars, Frisco, TX 75034, United States": o país é o
   // último trecho; a rua sai antes (o parser de lugares tomaria "2601" por CEP);
