@@ -2,7 +2,7 @@
 // federações; produz `dateISO` canônico (YYYY-MM-DD) e o `date` display
 // PT-BR no mesmo formato do mock do app ("24 de Janeiro, 2026").
 
-import { parse, isValid, format, parseISO, isBefore, startOfDay } from 'date-fns';
+import { parse, isValid, format, parseISO, isBefore, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 
 const REFERENCE = new Date(2000, 0, 1); // base p/ campos ausentes no parse
@@ -64,4 +64,9 @@ export function toDisplayPtBr(iso: string): string {
 /** true se a data já passou (anterior ao início do dia de `now`). */
 export function isPast(iso: string, now: Date = new Date()): boolean {
   return isBefore(parseISO(iso), startOfDay(now));
+}
+
+/** Dias de calendário até `iso` (negativo se já passou). */
+export function daysUntil(iso: string, now: Date = new Date()): number {
+  return differenceInCalendarDays(parseISO(iso), startOfDay(now));
 }

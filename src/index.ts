@@ -9,13 +9,16 @@ import type { ScrapedEvent } from './types.js';
 import { adapters, priorityBySource } from './adapters/registry.js';
 import { normalizeEvents } from './normalize/index.js';
 import { dedupe } from './normalize/dedup.js';
-import { isPast } from './normalize/dates.js';
+import { isPast, daysUntil } from './normalize/dates.js';
 import { closeBrowser } from './browser.js';
 import { hasDatabase, upsertEvents } from './db.js';
-import { fetchEventImage } from './enrich/ibjjf-image.js';
+import { fetchEventDetail, type EventDetail } from './enrich/ibjjf-detail.js';
 
-// Federações cujo imagem vive na página de detalhe (não na API do calendário).
+// Federações cuja imagem, prazo de inscrição e endereço vivem na página de
+// detalhe (não na API do calendário).
 const ENRICH_SOURCES = new Set(['ibjjf', 'cbjj']);
+// Janela em que o prazo pode mudar (prorrogação): perto dele, rebusca a página.
+const DEADLINE_RECHECK_DAYS = 14;
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = resolve(ROOT, 'data/events.json');
@@ -33,6 +36,29 @@ async function loadPrevious(): Promise<ScrapedEvent[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Aplica o que a página (ou o cache do run anterior) sabe. País/estado da
+ * página vencem a tabela de cidades; o prazo nunca pode ser a data do evento.
+ */
+function applyDetail(ev: ScrapedEvent, detail: EventDetail, prev?: ScrapedEvent): void {
+  const imageUrl = detail.imageUrl ?? prev?.imageUrl;
+  if (imageUrl && !ev.imageUrl) ev.imageUrl = imageUrl;
+
+  const deadline = detail.registrationDeadlineISO ?? prev?.registrationDeadlineISO;
+  if (deadline && deadline < ev.dateISO) ev.registrationDeadlineISO = deadline;
+
+  const countryCode = detail.countryCode ?? prev?.countryCode;
+  if (countryCode) {
+    if (ev.countryCode && ev.countryCode !== countryCode) {
+      console.warn(`::warning::[${ev.source}] tabela diz ${ev.countryCode}, página diz ${countryCode}: "${ev.title}" (${ev.city})`);
+    }
+    ev.countryCode = countryCode;
+  }
+  const state = detail.state ?? prev?.state;
+  if (state && (detail.state || !ev.state)) ev.state = state;
+  if (!ev.venue && detail.venue) ev.venue = detail.venue;
 }
 
 async function main() {
@@ -84,32 +110,44 @@ async function main() {
     process.exit(1);
   }
 
-  // Enriquecimento de imagem (IBJJF/CBJJ): a imagem vive na página de detalhe.
-  // Cache incremental: se o evento (por id) já tinha imageUrl no run anterior,
-  // reusa e pula o fetch — só busca eventos novos.
-  const prevImage = new Map(previous.filter((e) => e.imageUrl).map((e) => [e.id, e.imageUrl!]));
+  // Enriquecimento IBJJF/CBJJ pela página de detalhe: imagem, prazo de
+  // inscrição e endereço (país/estado autoritativos — corrigem a tabela de
+  // cidades). Cache incremental pelo sourceId (ou id, p/ JSON anterior v1):
+  // só busca eventos novos, sem prazo conhecido ou com prazo a ≤14 dias
+  // (quando prorrogações acontecem). O resto reaproveita o run anterior.
+  const prevByKey = new Map<string, ScrapedEvent>();
+  for (const e of previous) {
+    prevByKey.set(e.id, e);
+    if (e.sourceId) prevByKey.set(e.sourceId, e);
+  }
   let enriched = 0;
   let fetched = 0;
+  let withDeadline = 0;
   for (const ev of collected) {
-    if (ev.imageUrl || !ENRICH_SOURCES.has(ev.source)) continue;
-    const cached = prevImage.get(ev.id);
-    if (cached) {
-      ev.imageUrl = cached;
-      enriched++;
-      continue;
-    }
-    try {
-      const img = await fetchEventImage(ev.sourceUrl);
-      if (img) {
-        ev.imageUrl = img;
-        enriched++;
+    if (!ENRICH_SOURCES.has(ev.source)) continue;
+    if (ev.sourceUrl.endsWith('/events/calendar')) continue; // sem pageUrl: não há página de detalhe
+    const prev = (ev.sourceId && prevByKey.get(ev.sourceId)) || prevByKey.get(ev.id);
+    const cachedDeadline = prev?.registrationDeadlineISO;
+    const nearDeadline =
+      cachedDeadline !== undefined && daysUntil(cachedDeadline) >= 0 && daysUntil(cachedDeadline) <= DEADLINE_RECHECK_DAYS;
+    const needPage = !prev?.imageUrl || !cachedDeadline || nearDeadline;
+    let detail: EventDetail | undefined;
+    if (needPage) {
+      try {
+        detail = await fetchEventDetail(ev.sourceUrl);
+        fetched++;
+      } catch {
+        // página de detalhe falhou — segue com o cache (ou sem nada)
       }
-      fetched++;
-    } catch {
-      // página de detalhe falhou — segue sem imagem (app cai no logo da federação)
     }
+    applyDetail(ev, detail ?? {}, prev);
+    if (ev.imageUrl) enriched++;
+    if (ev.registrationDeadlineISO) withDeadline++;
   }
-  console.log(`Imagens IBJJF/CBJJ: ${enriched} com imagem (${fetched} páginas buscadas, resto via cache).`);
+  console.log(
+    `Detalhe IBJJF/CBJJ: ${enriched} com imagem, ${withDeadline} com prazo de inscrição ` +
+      `(${fetched} páginas buscadas, resto via cache).`,
+  );
 
   const deduped = dedupe(collected, priorityBySource).sort((a, b) =>
     a.dateISO.localeCompare(b.dateISO),
