@@ -2,7 +2,7 @@ name: scrape-events
 
 on:
   schedule:
-    - cron: '0 6 * * 1' # toda segunda-feira 06:00 UTC (semanal)
+    - cron: '0 6 * * *' # todo dia 06:00 UTC (03:00 BRT) — prazos de inscrição mudam diariamente
   workflow_dispatch: {} # permite rodar manualmente
 
 permissions:
@@ -42,13 +42,33 @@ jobs:
         run: npm run validate
 
       - name: Commit if changed
+        id: commit
         run: |
           git config user.name "bjj-scraper-bot"
           git config user.email "bjj-scraper-bot@users.noreply.github.com"
           git add data/events.json
           if git diff --staged --quiet; then
             echo "Sem mudanças no events.json."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             git commit -m "data: atualiza events.json ($(date -u +%FT%TZ))"
             git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # Acorda o sync do sensei-web (workflow sync-competitions.yml, gatilho
+      # repository_dispatch `scraper-updated`) assim que o JSON novo está no
+      # main. Precisa de um PAT com escopo `repo` no sensei-web, guardado no
+      # secret SENSEI_WEB_DISPATCH_TOKEN; sem o secret o passo é pulado e o
+      # cron diário do sensei-web faz o sync. `-f` falha alto em 3xx/4xx — o
+      # repo já mudou de nome duas vezes, e um redirect silencioso não dispara nada.
+      - name: Notify sensei-web (repository_dispatch scraper-updated)
+        if: ${{ steps.commit.outputs.changed == 'true' && secrets.SENSEI_WEB_DISPATCH_TOKEN != '' }}
+        env:
+          TOKEN: ${{ secrets.SENSEI_WEB_DISPATCH_TOKEN }}
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/rodrigob-dev/sensei-web/dispatches \
+            -d '{"event_type":"scraper-updated"}'
