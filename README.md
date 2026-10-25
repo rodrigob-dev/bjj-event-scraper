@@ -5,8 +5,10 @@ Coleta datas de competições futuras de federações de jiu-jitsu e gera um
 
 ## Como funciona
 
-Padrão **git-scraping**: um GitHub Action roda semanalmente, coleta os eventos,
-valida e commita o `events.json` se mudou. O app lê esse JSON via fetch com ISR
+Padrão **git-scraping**: um GitHub Action roda todo dia (06:00 UTC), coleta os
+eventos, valida e commita o `events.json` se mudou — e, se mudou, dispara o
+`repository_dispatch` `scraper-updated` no sensei-web (secret
+`SENSEI_WEB_DISPATCH_TOKEN`; sem ele o passo é pulado). O app lê esse JSON via fetch com ISR
 (revalidação diária) — sem backend.
 
 **Coleta HTTP-first**: cada fonte é batida por requisição HTTP direta no seu
@@ -20,7 +22,7 @@ endpoint JSON interno. Playwright (headless) existe só como *fallback* isolado
 |-------|-----------|------------------------|
 | IBJJF | `http` | `GET /api/v1/events/calendar.json` (headers de XHR) → `infosite_events[]` |
 | CBJJ | `http` | mesma API do IBJJF em `cbjj.com.br` (CMS compartilhado) |
-| Smoothcomp | `http` | array `var events = [...]` embutido no HTML de `/en/events/upcoming`; filtra `location_country === 'BR'` |
+| Smoothcomp | `http` | array `var events = [...]` embutido no HTML de `/en/events/upcoming`; mundo inteiro, só eventos cujas categorias mapeiam para `bjj`/`grappling` (tabela em `src/adapters/smoothcomp.ts`) |
 
 Prioridade em dedup: `cbjj` > `ibjjf` > `smoothcomp` (federação oficial vence o agregador).
 
@@ -49,6 +51,28 @@ npm run discover -- <url>   # Playwright: descobre endpoint JSON de uma fonte no
 
 `ScrapedEvent[]` — estende o `BJJEvent` do app com proveniência
 (`dateISO`, `source`, `sourceUrl`, `scrapedAt`). Ordenado por `dateISO`.
+
+### Campos v2
+
+Aditivos e opcionais (`src/schema.ts`): um leitor v1 continua funcionando, e
+cada fonte preenche só o que sabe. **Ausente = desconhecido, nunca chute.**
+`id` segue `slug(title)|dateISO` — inscrições em produção apontam pra ele.
+
+| campo | regra |
+|-------|-------|
+| `sourceId` | chave estável da fonte: `ibjjf:3121`, `cbjj:2968`, `smoothcomp:27746`. Única no JSON. |
+| `endDateISO` | último dia (`endDay` IBJJF, `enddate` Smoothcomp); igual a `dateISO` em evento de 1 dia. "Passado" = depois do último dia. |
+| `venue` | arena/ginásio (IBJJF `local`), nunca cidade |
+| `city` / `state` / `countryCode` | cidade limpa (`src/normalize/places.ts`: tira CEP, UF grudada, caixa alta); `state` = UF ou código US/CA/AU; `countryCode` ISO alpha-2 — Smoothcomp `location_country`, IBJJF pela tabela `src/adapters/ibjjf-places.ts` e pelo `<address>` da página de detalhe, CBJJ sempre `BR` |
+| `lat` / `lng` | só Smoothcomp (`0,0` e `null` ficam ausentes) |
+| `gi` / `nogi` / `kids` | IBJJF `eventGroups` + título; Smoothcomp `categoryGroups` (`1` gi; `7`/`3`/`4`/`24` no-gi) + título |
+| `organizer` | `IBJJF`, `CBJJ` ou o host do Smoothcomp (`ligabjj.smoothcomp.com` → `LigaBJJ`; no host genérico, marcas conhecidas pelo título) |
+| `sport` | `bjj` · `grappling` (os únicos publicados) · `judo` · `wrestling` · `mma` · `other` |
+| `registrationDeadlineISO` | só quando a página IBJJF/CBJJ declara ("Registration deadline" / "Prazo de Inscrição", ou a última faixa de preço); sempre anterior ao evento. Smoothcomp não expõe sem JS (Cloudflare) |
+
+Validação (`npm run validate`): schema + sem passado + sem `id`/`sourceId`
+duplicado + `lat`/`lng` no range + `countryCode` `^[A-Z]{2}$`. O contrato
+completo (produtor ↔ consumidor sensei-web) está em `docs/events-v2.md`.
 
 ## Integração com o app
 
