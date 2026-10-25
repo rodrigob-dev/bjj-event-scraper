@@ -97,9 +97,10 @@ async function main() {
 
   // Merge não-destrutivo: para fontes que falharam, reaproveita os eventos
   // futuros do JSON anterior — evita zerar dados por uma queda pontual.
+  // "Futuro" olha o último dia: um campeonato de 4 dias em andamento fica.
   const preservedSources = [...failedSources];
   for (const ev of previous) {
-    if (preservedSources.includes(ev.source) && !isPast(ev.dateISO)) {
+    if (preservedSources.includes(ev.source) && !isPast(ev.endDateISO ?? ev.dateISO)) {
       collected.push(ev);
     }
   }
