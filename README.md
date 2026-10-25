@@ -23,8 +23,20 @@ endpoint JSON interno. Playwright (headless) existe só como *fallback* isolado
 | IBJJF | `http` | `GET /api/v1/events/calendar.json` (headers de XHR) → `infosite_events[]` |
 | CBJJ | `http` | mesma API do IBJJF em `cbjj.com.br` (CMS compartilhado) |
 | Smoothcomp | `http` | array `var events = [...]` embutido no HTML de `/en/events/upcoming`; mundo inteiro, só eventos cujas categorias mapeiam para `bjj`/`grappling` (tabela em `src/adapters/smoothcomp.ts`) |
+| AJP (UAEJJF) | `http` | `ajptour.com/en/events/upcoming` é um Smoothcomp em marca própria: mesmo `var events` (data/país ISO, coordenadas); modalidade pelo título. robots pede `Crawl-delay: 10`, respeitado |
+| SJJIF | `http` | home `sjjif.com/` renderiza "Upcoming Events" (SJJIF) + "Sanctioned Events" (SJJCF, ASJJF, SJJJF…): título, data por extenso, local, país por extenso. `/calendar/upcomingEvents` é só JS |
+| JJWL | `http` | menu TOURNAMENTS de `/jjwl/tournaments` lista `/events/<slug>` (um por GI/NoGI × Youth/Adults); cada página traz "Event Day", "Event Address", "Application deadline" — ~32 páginas por coleta |
+| FJJRIO | `http` | home `fjjrio.com.br/` renderiza "Próximos Eventos" (categoria, data PT, ginásio); a página do evento dá "Término da Inscrição" |
+| CBJJO | `http` | o calendário em cbjjo.com.br é JPG; a lista é o portal de inscrições `cbjjo.beta.portalsamurai.com` (cards) + página do evento ("DE … ATÉ …", "Inscrições ATÉ", "Local") |
 
-Prioridade em dedup: `cbjj` > `ibjjf` > `smoothcomp` (federação oficial vence o agregador).
+Prioridade em dedup: federações nacionais/estaduais (`cbjj`, `cbjjo`, `fjjrio` = 3) >
+organizadores dos próprios eventos (`ibjjf`, `ajp`, `jjwl`, `sjjif` = 2) > agregador (`smoothcomp` = 1).
+
+Sondadas e deixadas de fora (2026-10-25): **BJJ Tour** (4 eventos, inscrição no smoothcomp.com — já
+no feed; página com spam injetado), **FPJJ** (`fpjjcompetidor.com.br/calendario-2026/` tem um
+`const eventsData = [...]` inline com 19 eventos de SP, sem link de inscrição — viável, ficou fora
+pelo teto de 5 adapters), **NABJJF** (Next.js renderizado no servidor, 4 eventos que a SJJIF já lista;
+robots proíbe `/api/`).
 
 ## Scripts
 

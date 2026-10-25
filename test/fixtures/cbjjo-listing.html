@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>CBJJO - Eventos</title></head>
+<body>
+<div class="carousel-inner">
+              <div class="carousel-item active">
+          <a href="">
+            <img class="d-block w-100" src="https://cbjjo.beta.portalsamurai.com/assets/img/carousel/1789401318_89ecccdcf0c4.jpg" alt="1">
+          </a>
+        </div>
+              <div class="carousel-item ">
+          <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=50">
+            <img class="d-block w-100" src="https://cbjjo.beta.portalsamurai.com/assets/img/carousel/1789407129_01c572e454f3.jpg" alt="2">
+          </a>
+        </div>
+              <div class="carousel-item ">
+          <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=48">
+            <img class="d-block w-100" src="https://cbjjo.beta.portalsamurai.com/assets/img/carousel/1789407167_63bc87b16f82.jpg" alt="3">
+          </a>
+        </div>
+              <div class="carousel-item ">
+          <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=49">
+            <img class="d-block w-100" src="https://cbjjo.beta.portalsamurai.com/assets/img/carousel/1789407181_af9dd9155e33.jpg" alt="4">
+          </a>
+        </div>
+              <div class="carousel-item ">
+          <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=51">
+            <img class="d-block w-100" src="https://cbjjo.beta.portalsamurai.com/assets/img/carousel/1789407200_d9da978076fa.jpg" alt="5">
+          </a>
+        </div>
+              <div class="carousel-item ">
+          <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=52">
+            <img class="d-block w-100" src="https://cbjjo.beta.portalsamurai.com/assets/img/carousel/1789409480_ae8b05a91748.jpg" alt="6">
+          </a>
+        </div>
+          </div>
+    <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="sr-only">Previous</span>
+    </a>
+    <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="sr-only">Next</span>
+    </a>
+  </div>
+
+
+
+
+  <div class="container" style="margin-top: 20px; margin-bottom: 20px;">
+    <!-- Botão aparece apenas no mobile -->
+    <button id="toggleButton" class="btn cbjjo-filter-toggle w-100 d-lg-none" type="button">
+      <i class="bi bi-sliders"></i> Filtrar eventos
+    </button>
+
+    <!-- Filtros -->
+    <div id="filterOptions" class="collapse d-lg-block mt-3 mt-lg-0">
+      <div class="cbjjo-filter">
+        <div class="cbjjo-filter-header">
+          <h5><i class="bi bi-funnel-fill"></i> Filtrar eventos</h5>
+          <a href="#" class="cbjjo-clear-filters">Limpar filtros <i class="bi bi-x-circle"></i></a>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">MODALIDADE</label>
+            <select class="form-select" name="modalidade">
+              <option>Todas</option>
+              <option>Com Kimono</option>
+              <option>Sem Kimono</option>
+              <option>Cursos</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">LOCAL</label>
+            <select class="form-select" name="local">
+              <option value="">Selecione o estado...</option>
+              <option value="AC">AC - Acre</option>
+              <option value="AL">AL - Alagoas</option>
+              <option value="AP">AP - Amapá</option>
+              <option value="AM">AM - Amazonas</option>
+              <option value="BA">BA - Bahia</option>
+              <option value="CE">CE - Ceará</option>
+              <option value="DF">DF - Distrito Federal</option>
+              <option value="ES">ES - Espírito Santo</option>
+              <option value="GO">GO - Goiás</option>
+              <option value="MA">MA - Maranhão</option>
+              <option value="MT">MT - Mato Grosso</option>
+              <option value="MS">MS - Mato Grosso do Sul</option>
+              <option value="MG">MG - Minas Gerais</option>
+              <option value="PA">PA - Pará</option>
+              <option value="PB">PB - Paraíba</option>
+              <option value="PR">PR - Paraná</option>
+              <option value="PE">PE - Pernambuco</option>
+              <option value="PI">PI - Piauí</option>
+              <option value="RJ">RJ - Rio de Janeiro</option>
+              <option value="RN">RN - Rio Grande do Norte</option>
+              <option value="RS">RS - Rio Grande do Sul</option>
+              <option value="RO">RO - Rondônia</option>
+              <option value="RR">RR - Roraima</option>
+              <option value="SC">SC - Santa Catarina</option>
+              <option value="SP">SP - São Paulo</option>
+              <option value="SE">SE - Sergipe</option>
+              <option value="TO">TO - Tocantins</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">PESQUISA POR TÍTULO</label>
+            <input type="text" class="form-control" placeholder="Digite o nome do evento...">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <div class="container" style="padding-top: 10px; padding-bottom: 40px;">
+
+        <section>
+
+          <div class="cbjjo-eventos-header">
+            <h2>Eventos</h2>
+            <div class="cbjjo-toggle">
+              <button type="button" class="toggle-btn btn-nav active" onclick="mostrarSecao('proximos')">Próximos</button>
+              <button type="button" class="toggle-btn btn-nav" onclick="mostrarSecao('passados')">Passados</button>
+            </div>
+          </div>
+
+          <section class="content-section" id="proximos">
+            <div class="row g-4">
+
+              
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                  <input type="hidden" class="evt-titulo" value="WORLD CUP 2026 - GI">
+                  <input type="hidden" class="evt-modalidade" value="GI">
+                  <input type="hidden" class="evt-uf" value="">
+                  <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=48" class="text-decoration-none">
+                    <div class="evt-card">
+                      <img class="evt-card-img" src="../../assets/img/eventos/48_card_1789048332.jpg" alt="WORLD CUP 2026 - GI">
+                      <div class="evt-card-body">
+                        <h5 class="evt-card-title">WORLD CUP 2026 - GI</h5>
+                        <div class="evt-card-location">
+                          <i class="bi bi-geo-alt-fill"></i>
+                          CENTRO POLIESPORTIVO MIÉCIMO DA SILVA, CAMPO GRANDE -                         </div>
+                        <div class="evt-card-footer">
+                          <div class="evt-date-badges">
+                            <span class="evt-badge-month">NOVEMBRO</span>
+                                                          <span class="evt-badge-day">07</span>
+                                                          <span class="evt-badge-day">08</span>
+                                                      </div>
+                                                                                    <span class="evt-badge-cat evt-badge-gi">GI</span>
+                                                                              </div>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+
+              
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                  <input type="hidden" class="evt-titulo" value="WORLD CUP 2026 - NOGI">
+                  <input type="hidden" class="evt-modalidade" value="NO-GI">
+                  <input type="hidden" class="evt-uf" value="">
+                  <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=49" class="text-decoration-none">
+                    <div class="evt-card">
+                      <img class="evt-card-img" src="../../assets/img/eventos/49_card_1789049694.jpg" alt="WORLD CUP 2026 - NOGI">
+                      <div class="evt-card-body">
+                        <h5 class="evt-card-title">WORLD CUP 2026 - NOGI</h5>
+                        <div class="evt-card-location">
+                          <i class="bi bi-geo-alt-fill"></i>
+                          CENTRO POLIESPORTIVO MIÉCIMO DA SILVA, CAMPO GRANDE -                         </div>
+                        <div class="evt-card-footer">
+                          <div class="evt-date-badges">
+                            <span class="evt-badge-month">NOVEMBRO</span>
+                                                          <span class="evt-badge-day">07</span>
+                                                          <span class="evt-badge-day">08</span>
+                                                      </div>
+                                                                                    <span class="evt-badge-cat evt-badge-nogi">NO-GI</span>
+                                                                              </div>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+
+              
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                  <input type="hidden" class="evt-titulo" value="FESTIVAL WORLD CUP 2026">
+                  <input type="hidden" class="evt-modalidade" value="GI">
+                  <input type="hidden" class="evt-uf" value="">
+                  <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=50" class="text-decoration-none">
+                    <div class="evt-card">
+                      <img class="evt-card-img" src="../../assets/img/eventos/50_card_1789395375.jpg" alt="FESTIVAL WORLD CUP 2026">
+                      <div class="evt-card-body">
+                        <h5 class="evt-card-title">FESTIVAL WORLD CUP 2026</h5>
+                        <div class="evt-card-location">
+                          <i class="bi bi-geo-alt-fill"></i>
+                          CENTRO POLIESPORTIVO MIÉCIMO DA SILVA, CAMPO GRANDE -                         </div>
+                        <div class="evt-card-footer">
+                          <div class="evt-date-badges">
+                            <span class="evt-badge-month">NOVEMBRO</span>
+                                                          <span class="evt-badge-day">07</span>
+                                                          <span class="evt-badge-day">08</span>
+                                                      </div>
+                                                                                    <span class="evt-badge-cat evt-badge-gi">GI</span>
+                                                                              </div>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+
+              
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                  <input type="hidden" class="evt-titulo" value="WORLD CUP 2026 -  SUPER ABSOLUTO - GI">
+                  <input type="hidden" class="evt-modalidade" value="NO-GI">
+                  <input type="hidden" class="evt-uf" value="">
+                  <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=51" class="text-decoration-none">
+                    <div class="evt-card">
+                      <img class="evt-card-img" src="../../assets/img/eventos/51_card_1789395932.jpg" alt="WORLD CUP 2026 -  SUPER ABSOLUTO - GI">
+                      <div class="evt-card-body">
+                        <h5 class="evt-card-title">WORLD CUP 2026 -  SUPER ABSOLUTO - GI</h5>
+                        <div class="evt-card-location">
+                          <i class="bi bi-geo-alt-fill"></i>
+                          CENTRO POLIESPORTIVO MIÉCIMO DA SILVA, CAMPO GRANDE -                         </div>
+                        <div class="evt-card-footer">
+                          <div class="evt-date-badges">
+                            <span class="evt-badge-month">NOVEMBRO</span>
+                                                          <span class="evt-badge-day">07</span>
+                                                          <span class="evt-badge-day">08</span>
+                                                      </div>
+                                                                                    <span class="evt-badge-cat evt-badge-nogi">NO-GI</span>
+                                                                              </div>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+
+              
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                  <input type="hidden" class="evt-titulo" value="WORLD CUP 2026 - SUPER ABSOLUTO NOGI">
+                  <input type="hidden" class="evt-modalidade" value="NO-GI">
+                  <input type="hidden" class="evt-uf" value="">
+                  <a href="https://cbjjo.beta.portalsamurai.com/views/evento/Evento.php?ID_EVENTO=52" class="text-decoration-none">
+                    <div class="evt-card">
+                      <img class="evt-card-img" src="../../assets/img/eventos/52_card_1789396490.jpg" alt="WORLD CUP 2026 - SUPER ABSOLUTO NOGI">
+                      <div class="evt-card-body">
+                        <h5 class="evt-card-title">WORLD CUP 2026 - SUPER ABSOLUTO NOGI</h5>
+                        <div class="evt-card-location">
+                          <i class="bi bi-geo-alt-fill"></i>
+                          CENTRO POLIESPORTIVO MIÉCIMO DA SILVA, CAMPO GRANDE -                         </div>
+                        <div class="evt-card-footer">
+                          <div class="evt-date-badges">
+                            <span class="evt-badge-month">NOVEMBRO</span>
+                                                          <span class="evt-badge-day">07</span>
+                                                          <span class="evt-badge-day">08</span>
+                                                      </div>
+                                                                                    <span class="evt-badge-cat evt-badge-nogi">NO-GI</span>
+                                                                              </div>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+
+              
+            </div>
+          </section>
+
+          <section class="content-section" id="passados">
+            <div class="row g-4">
+
+              
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                  <a href="https://cbjjo.beta.portalsamurai.com/views/evento/evento_resultados.php?ID_EVENTO=1" class="text-decoration-none">
+                    <div class="evt-card evt-card-past">
+                      <span class="evt-past-ribbon"><i class="bi bi-clock-history"></i> Encerrado</span>
+                      <img class="evt-card-img" src="../../assets/img/eventos/sulamericano2025_card.jpg" alt="CAMPEONATO SULAMERICANO DE JIU-JITSU 2025">
+                      <div class="evt-card-body">
+                        <h5 class="evt-card-title">CAMPEONATO SULAMERICANO DE JIU-JITSU 2025</h5>
+                        <div class="evt-card-location">
+                          <i class="bi bi-geo-alt-fill"></i>
+                          ARENA DA JUVENTUDE, DEODORO - RJ                        </div>
+                        <div class="evt-card-footer">
+                          <div class="evt-date-badges">
+                            <span class="evt-badge-month">FEVEREIRO</span>
+                                                          <span class="evt-badge-day">22</span>
+                                                          <span class="evt-badge-day">23</span>
+                                                      </div>
+                        </div>
+                        <div class="evt-past-cta">
+                          <i class="bi bi-trophy-fill"></i> Confira os Resultados
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+
+              
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                  <a href="https://cbjjo.beta.portalsamurai.com/views/evento/evento_resultados.php?ID_EVENTO=7" class="text-decoration-none">
+                    <div class="evt-card evt-card-past">
+                      <span class="evt-past-ribbon"><i class="bi bi-clock-history"></i> Encerrado</span>
+                      <img class="evt-card-img" src="../../assets/img/eventos/card_openriocbjjb.jpg" alt="OPEN RIO CBJJO 2025">
+                      <div class="evt-card-body">
+                        <h5 class="evt-card-title">OPEN RIO CBJJO 2025</h5>
+                        <div class="evt-card-location">
+                          <i class="bi bi-geo-alt-fill"></i>
+                          ARENA DA JUVENTUDE, DEODORO -                         </div>
+                        <div class="evt-card-footer">
+                          <div class="evt-date-badges">
+                            <span class="evt-badge-month">MARÇO</span>
+                                                          <span class="evt-badge-day">22</span>
+                                                      </div>
+                        </div>
+                        <div class="evt-past-cta">
+                          <i class="bi bi-trophy-fill"></i> Confira os Resultados
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+
+ 
+</body></html>

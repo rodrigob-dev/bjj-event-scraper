@@ -19,20 +19,21 @@ consumer on v1 keeps working and a producer can roll fields out one source at a 
 | city | string? | v2 | city only, trimmed, title-cased when the source shouts; no UF/state glued on |
 | state | string? | v2 | region code: Brazilian UF or US/CA/AU state code, uppercase 2 letters; absent elsewhere |
 | countryCode | string? | v2 | ISO 3166-1 alpha-2 (`BR`, `US`, `PT`). Smoothcomp `location_country`; IBJJF derived from city/region tables; CBJJ always `BR`. Absent when unknown — never guessed. |
-| lat, lng | number? | v2 | WGS84 decimal degrees. Smoothcomp `location_lat/long` (parseFloat; drop if NaN/0,0). IBJJF/CBJJ: absent (the sync's place table fills them). |
+| lat, lng | number? | v2 | WGS84 decimal degrees. Smoothcomp and AJP `location_lat/long` (parseFloat; drop if NaN/0,0). Every other source: absent (the sync's place table fills them). |
 | gi, nogi | boolean? | v2 | IBJJF eventGroups 'No-Gi' → nogi=true gi=false, else gi=true nogi=false; Smoothcomp categoryGroups: '1' gi, '7'/'3'/'4' nogi (can be both). Absent = unknown (consumer keeps its defaults). |
 | kids | boolean? | v2 | IBJJF eventGroups 'Kids' or title matches `\bkids?\b|juvenil|infantil|youth`; Smoothcomp same title rule. |
-| organizer | string? | v2 | who runs it, for the chip: `IBJJF`, `CBJJ`, or the Smoothcomp host (`ligabjj.smoothcomp.com` → `LigaBJJ`; title-based for naga/grappling industries/fuji/adcc/newbreed/good fight when the subdomain is generic). |
+| organizer | string? | v2 | who runs it, for the chip: `IBJJF`, `CBJJ`, `CBJJO`, `FJJRIO`, `AJP`, `JJWL`, `SJJIF` (or the federation signing a sanctioned SJJIF title: `SJJCF`, `ASJJF`, `SJJJF`…), or the Smoothcomp host (`ligabjj.smoothcomp.com` → `LigaBJJ`; title-based for naga/grappling industries/fuji/adcc/newbreed/good fight when the subdomain is generic). |
 | sport | enum? | v2 | `bjj` · `grappling` · `judo` · `wrestling` · `mma` · `other`. Smoothcomp from categoryGroups (1/2/7/23/24 bjj, 3/4 grappling, 26 judo, 32/51 wrestling, 19/37/10 mma, else other); IBJJF/CBJJ `bjj`. Producer emits ONLY bjj + grappling rows into events.json (the app is a jiu-jitsu app); the mapping lives in code so widening is one line. |
-| registrationDeadlineISO | string? | v2 | YYYY-MM-DD when the source states it (IBJJF detail page the enrich step already downloads; Smoothcomp event page `registration closes`). Absent otherwise — NEVER the event date. |
-| source | string | v1 | `ibjjf` · `cbjj` · `smoothcomp` (new adapters add their own) |
+| registrationDeadlineISO | string? | v2 | YYYY-MM-DD when the source states it (IBJJF detail page the enrich step already downloads; JJWL "Application deadline"; FJJRIO "Término da Inscrição"; CBJJO "Inscrições ATÉ" — dropped when the portal closes after the event starts). Absent otherwise — NEVER the event date. Smoothcomp/AJP/SJJIF do not expose it without JS. |
+| source | string | v1 | `ibjjf` · `cbjj` · `smoothcomp` · `ajp` · `sjjif` · `jjwl` · `fjjrio` · `cbjjo` (new adapters add their own). sourceId native keys: AJP/SJJIF/CBJJO numeric ids, JJWL the event slug, FJJRIO the opaque id as base64url without padding. |
 | sourceUrl | string | v1 | http(s) only |
 | imageUrl | string? | v1 | http(s) only |
 | accentColor | string? | v1 | #RRGGBB |
 | scrapedAt | string | v1 | ISO datetime |
 
-Dedup: still `slug(title)|dateISO`, priority cbjj > ibjjf > smoothcomp. The same physical event on IBJJF and Smoothcomp
-with different titles stays two rows (accepted; the consumer may later merge by sourceId tables).
+Dedup: still `slug(title)|dateISO`, priority cbjj = cbjjo = fjjrio (3) > ibjjf = ajp = jjwl = sjjif (2) > smoothcomp (1).
+The same physical event on IBJJF and Smoothcomp (or AJP and Smoothcomp) with different titles stays two rows
+(accepted; the consumer may later merge by sourceId tables).
 
 Validation (src/validate.ts): no past rows, no duplicate id, no duplicate sourceId, lat/lng in range, countryCode 2 uppercase letters.
 
