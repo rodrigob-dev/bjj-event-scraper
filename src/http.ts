@@ -3,12 +3,14 @@
 // - Rate-limit por host (1 req a cada ~2.5s).
 // - Retry com backoff exponencial só para 5xx/timeout/erro de rede.
 // - 429 respeita Retry-After e desiste rápido.
-// - robots.txt buscado e cacheado por host; respeita Disallow.
+// - robots.txt buscado e cacheado por host; respeita Disallow e Crawl-delay
+//   (quando maior que o nosso intervalo; teto de 60 s — ajptour.com pede 10 s).
 
 const USER_AGENT =
   'BJJAvatarBot/1.0 (+https://github.com/naif/bjj-event-scraper; jiu-jitsu event calendar)';
 
 const MIN_INTERVAL_MS = 2500;
+const MAX_CRAWL_DELAY_MS = 60_000;
 const MAX_RETRIES = 3;
 
 const lastRequestAt = new Map<string, number>();
@@ -16,6 +18,8 @@ const robotsCache = new Map<string, RobotsRules>();
 
 interface RobotsRules {
   disallow: string[];
+  /** Crawl-delay (ms) do bloco que vale pra nós; ausente = sem pedido. */
+  crawlDelayMs?: number;
 }
 
 interface HttpOptions {
@@ -38,17 +42,18 @@ function buildUrl(url: string, params?: HttpOptions['params']): string {
   return u.toString();
 }
 
-async function rateLimit(host: string): Promise<void> {
+async function rateLimit(host: string, minIntervalMs: number = MIN_INTERVAL_MS): Promise<void> {
   const last = lastRequestAt.get(host) ?? 0;
-  const wait = MIN_INTERVAL_MS - (Date.now() - last);
+  const wait = minIntervalMs - (Date.now() - last);
   if (wait > 0) await sleep(wait);
   lastRequestAt.set(host, Date.now());
 }
 
-function parseRobots(txt: string): RobotsRules {
-  // Parser minimalista: coleta Disallow do bloco User-agent: * (e global).
+export function parseRobots(txt: string): RobotsRules {
+  // Parser minimalista: coleta Disallow e Crawl-delay do bloco User-agent: * (e global).
   const lines = txt.split('\n').map((l) => l.replace(/#.*$/, '').trim());
   const disallow: string[] = [];
+  let crawlDelayMs: number | undefined;
   let appliesToUs = true; // antes do primeiro User-agent, regras valem
   for (const line of lines) {
     const [rawKey, ...rest] = line.split(':');
@@ -59,9 +64,12 @@ function parseRobots(txt: string): RobotsRules {
       appliesToUs = value === '*' || value.toLowerCase().includes('bjjavatarbot');
     } else if (key === 'disallow' && appliesToUs && value) {
       disallow.push(value);
+    } else if (key === 'crawl-delay' && appliesToUs) {
+      const secs = Number(value);
+      if (Number.isFinite(secs) && secs > 0) crawlDelayMs = Math.min(secs * 1000, MAX_CRAWL_DELAY_MS);
     }
   }
-  return { disallow };
+  return { disallow, ...(crawlDelayMs !== undefined ? { crawlDelayMs } : {}) };
 }
 
 async function getRobots(origin: string): Promise<RobotsRules> {
@@ -91,16 +99,18 @@ export async function httpGet<T = unknown>(url: string, opts: HttpOptions = {}):
   const parsed = new URL(finalUrl);
   const wantJson = opts.json !== false;
 
+  let minIntervalMs = MIN_INTERVAL_MS;
   if (!opts.skipRobots) {
     const rules = await getRobots(parsed.origin);
     if (!isAllowed(rules, parsed.pathname)) {
       throw new Error(`robots.txt proíbe ${parsed.pathname} em ${parsed.origin}`);
     }
+    if (rules.crawlDelayMs) minIntervalMs = Math.max(minIntervalMs, rules.crawlDelayMs);
   }
 
   let lastErr: unknown;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    await rateLimit(parsed.host);
+    await rateLimit(parsed.host, minIntervalMs);
     try {
       const res = await fetch(finalUrl, {
         headers: {

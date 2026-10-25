@@ -78,6 +78,8 @@ export const UF_BY_CITY: Record<string, string> = {
   'afogados da ingazeira': 'PE', ouricuri: 'PE', garanhuns: 'PE', caruaru: 'PE', olinda: 'PE',
   'jaboatao dos guararapes': 'PE', 'campina grande': 'PB', 'vila velha': 'ES', anapolis: 'GO',
   taguatinga: 'DF', ceilandia: 'DF', 'cruzeiro novo': 'DF', parauapebas: 'PA',
+  // circuito AJP no Brasil
+  gramado: 'RS', 'novo hamburgo': 'RS', canoas: 'RS', 'sao goncalo': 'RJ', macae: 'RJ', cabo: 'PE',
 };
 
 /** UF de uma cidade brasileira conhecida, ou undefined. */

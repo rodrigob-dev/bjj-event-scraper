@@ -38,6 +38,8 @@ const US: Record<string, string | null> = {
   'new orleans': 'LA', providence: 'RI', hartford: 'CT', 'virginia beach': 'VA', tucson: 'AZ',
   'el paso': 'TX', boise: 'ID', reno: 'NV', tacoma: 'WA', oakland: 'CA', 'santa clara': 'CA',
   pasadena: 'CA', carson: 'CA', torrance: 'CA', 'daly city': 'CA', 'santa ana': 'CA', pomona: 'CA',
+  // circuitos SJJIF/NABJJF/JJWL
+  norwalk: 'CA', frisco: 'TX', riverside: 'CA', 'lake elsinore': 'CA', hayward: 'CA', azusa: 'CA',
   // sem estado: há mais de uma cidade com esse nome em circuito da IBJJF
   concord: null, fredericksburg: null,
 };

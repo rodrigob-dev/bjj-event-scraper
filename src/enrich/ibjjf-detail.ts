@@ -11,6 +11,8 @@ import { httpGet } from '../http.js';
 import { extractBgLogo } from './ibjjf-image.js';
 import { parseToDate, toISODate } from '../normalize/dates.js';
 import { regionCode } from '../normalize/places.js';
+// País por extenso → ISO vive em normalize/countries.ts (SJJIF e JJWL usam a mesma tabela).
+import { countryCodeOfName } from '../normalize/countries.js';
 
 export interface EventDetail {
   imageUrl?: string;
@@ -19,22 +21,6 @@ export interface EventDetail {
   city?: string;
   state?: string;
   countryCode?: string;
-}
-
-// Nome do país como a página escreve → ISO. Fora daqui fica sem país (log no scrape).
-const COUNTRY_BY_NAME: Record<string, string> = {
-  'united states of america': 'US', 'united states': 'US', usa: 'US',
-  brasil: 'BR', brazil: 'BR', portugal: 'PT', ireland: 'IE', italy: 'IT', italia: 'IT',
-  france: 'FR', spain: 'ES', espana: 'ES', 'united kingdom': 'GB', england: 'GB', germany: 'DE',
-  switzerland: 'CH', netherlands: 'NL', canada: 'CA', mexico: 'MX', japan: 'JP',
-  'south korea': 'KR', 'korea, republic of': 'KR', 'republic of korea': 'KR', malaysia: 'MY',
-  'united arab emirates': 'AE', australia: 'AU', 'new zealand': 'NZ', chile: 'CL', argentina: 'AR',
-  peru: 'PE', colombia: 'CO', 'costa rica': 'CR', 'puerto rico': 'PR', 'hong kong': 'HK',
-  singapore: 'SG', thailand: 'TH', philippines: 'PH', qatar: 'QA', 'saudi arabia': 'SA',
-};
-
-function norm(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 /** Texto de um <div class='X'>…</div> simples (sem div aninhado). */
@@ -77,7 +63,7 @@ export function extractAddress(html: string): Pick<EventDetail, 'venue' | 'city'
   const venue = divText(addr, 'local');
   const city = divText(addr, 'complement');
   const country = divText(addr, 'country');
-  const cc = country ? COUNTRY_BY_NAME[norm(country)] : undefined;
+  const cc = countryCodeOfName(country);
   if (venue) out.venue = venue;
   if (city) out.city = city;
   if (cc) out.countryCode = cc;
