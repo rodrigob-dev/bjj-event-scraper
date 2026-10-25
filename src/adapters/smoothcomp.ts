@@ -6,7 +6,7 @@
 
 import { httpGet } from '../http.js';
 import type { SourceAdapter, RawEvent, Sport } from '../types.js';
-import { parsePlace } from '../normalize/places.js';
+import { parsePlace, ufOfBrazilianCity } from '../normalize/places.js';
 import { kidsFromTitle } from '../normalize/classify.js';
 
 const UPCOMING_URL = 'https://smoothcomp.com/en/events/upcoming';
@@ -143,6 +143,13 @@ export function organizerOf(url: string, title: string): string | undefined {
   return ORGANIZER_BY_TITLE.find(([re]) => re.test(title))?.[1];
 }
 
+/** ISO alpha-2 do campo location_country. "GB-SCT"/"GB-NIR" (subdivisão ISO 3166-2) vira "GB". */
+export function countryCodeOf(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const m = v.trim().toUpperCase().match(/^([A-Z]{2})(?:-[A-Z0-9]{1,3})?$/);
+  return m ? m[1] : undefined;
+}
+
 function coord(v: unknown): number | undefined {
   const n = typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v) : NaN;
   return Number.isFinite(n) ? n : undefined;
@@ -168,11 +175,13 @@ export const smoothcompAdapter: SourceAdapter = {
       const sport = sportOf(groups);
       if (!EMITTED_SPORTS.has(sport)) continue;
 
-      const countryCode =
-        typeof e.location_country === 'string' && /^[A-Z]{2}$/.test(e.location_country)
-          ? e.location_country
-          : undefined;
+      const countryCode = countryCodeOf(e.location_country);
       const place = parsePlace(e.location_city ?? '', countryCode, e.location_country_human);
+      // Só a cidade ("Belém, Brazil"): a UF vem da tabela de cidades brasileiras.
+      if (countryCode === 'BR' && !place.state && place.city) {
+        const uf = ufOfBrazilianCity(place.city);
+        if (uf) place.state = uf;
+      }
 
       // 0,0 é "não geocodificado" no Smoothcomp, não o Golfo da Guiné.
       let lat = coord(e.location_lat);

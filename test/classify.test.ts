@@ -10,6 +10,15 @@ describe('classifyType — fronteiras de palavra', () => {
     expect(classifyType('Graduação de Faixas 2026')).toBe('promotion');
     expect(classifyType('Belt Graduation Night')).toBe('promotion');
   });
+  it('faixa como divisão de torneio não é graduação', () => {
+    expect(classifyType('Precision White and Grey Belt SUB ONLY')).toBe('competition');
+    expect(classifyType('RISE BJJ - WHITE & BLUE BELT ROUND ROBIN TOURNAMENT')).toBe('competition');
+    expect(classifyType('Dream BJJ Kids Gi: White Belt Edition 2027')).toBe('competition');
+    expect(classifyType('Blue Belt Ceremony')).toBe('competition'); // divisão colorida sem palavra de graduação
+    expect(classifyType('Belt Ceremony 2026')).toBe('promotion');
+    expect(classifyType('Black Belt Promotion Ceremony')).toBe('promotion');
+  });
+
   it('"Copa Faixa Preta" e "Open" seguem competição', () => {
     expect(classifyType('Copa Faixa Preta de Jiu-Jitsu')).toBe('competition');
     expect(classifyType('Rio Fall International Open IBJJF Jiu-Jitsu Championship 2026')).toBe('competition');

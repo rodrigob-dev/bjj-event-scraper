@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { smoothcompAdapter, sportOf, organizerOf } from '../src/adapters/smoothcomp.js';
+import { smoothcompAdapter, sportOf, organizerOf, countryCodeOf } from '../src/adapters/smoothcomp.js';
 import { normalizeEvents } from '../src/normalize/index.js';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
@@ -62,6 +62,18 @@ describe('smoothcomp v2 — campos estruturados', () => {
     expect(byId(29250)).toMatchObject({ city: 'London', countryCode: 'GB' });
     expect(byId(28209)).toMatchObject({ city: 'Mississauga', state: 'ON', countryCode: 'CA' });
     expect(byId(34107)).toMatchObject({ city: 'Francisco Beltrão', countryCode: 'BR' });
+  });
+
+  it('BR só com a cidade ganha a UF da tabela', () => {
+    expect(byId(34107)).toMatchObject({ city: 'Francisco Beltrão', state: 'PR' });
+  });
+
+  it('countryCodeOf: ISO puro e subdivisão "GB-SCT" → "GB"; lixo fica ausente', () => {
+    expect(countryCodeOf('BR')).toBe('BR');
+    expect(countryCodeOf('GB-SCT')).toBe('GB');
+    expect(countryCodeOf('GB-NIR')).toBe('GB');
+    expect(countryCodeOf('Brazil')).toBeUndefined();
+    expect(countryCodeOf(null)).toBeUndefined();
   });
 
   it('só o estado, sem cidade', () => {

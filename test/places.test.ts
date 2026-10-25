@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parsePlace, titleCaseIfShouting, regionCode } from '../src/normalize/places.js';
+import { parsePlace, titleCaseIfShouting, regionCode, ufOfBrazilianCity } from '../src/normalize/places.js';
 
 describe('parsePlace — formatos vistos no Smoothcomp', () => {
   const cases: Array<[string, string | undefined, string | undefined, { city?: string; state?: string }]> = [
@@ -40,6 +40,15 @@ describe('parsePlace — formatos vistos no Smoothcomp', () => {
     ['La Paz, Baja California Sur', 'MX', 'Mexico', { city: 'La Paz' }],
     ['CDMX', 'MX', 'Mexico', { city: 'CDMX' }],
     ['', 'US', undefined, {}],
+    // endereço no lugar da cidade, distrito postal, departamento francês, postcode austríaco
+    ['8 Lambert Rd, Indooroopilly', 'AU', 'Australia', { city: 'Indooroopilly' }],
+    ['Deakin University Melbourne Burwood Campus Address: 221 Burwood Hwy, Burwood VIC 3125', 'AU', 'Australia', { city: 'Burwood', state: 'VIC' }],
+    ['620 S Pine Rd, Brendale QLD 4500', 'AU', 'Australia', { city: 'Brendale', state: 'QLD' }],
+    ['42 Scenic Boulevard', 'AU', 'Australia', {}],
+    ['Dublin 15', 'IE', 'Ireland', { city: 'Dublin' }],
+    ['Toulouse (31)', 'FR', 'France', { city: 'Toulouse' }],
+    ['A-2344 Maria Enzersdorf', 'AT', 'Austria', { city: 'Maria Enzersdorf' }],
+    ['Belfast', 'GB', 'Northern Ireland', { city: 'Belfast' }],
   ];
   for (const [raw, cc, human, expected] of cases) {
     it(`${JSON.stringify(raw)} (${cc})`, () => {
@@ -64,5 +73,14 @@ describe('regionCode', () => {
     expect(regionCode('Bahia', 'US')).toBeUndefined();
     expect(regionCode('NSW', 'AU')).toBe('NSW');
     expect(regionCode('SC', 'PT')).toBeUndefined();
+  });
+});
+
+describe('ufOfBrazilianCity', () => {
+  it('capital e polo, com e sem acento; desconhecida fica undefined', () => {
+    expect(ufOfBrazilianCity('Belém')).toBe('PA');
+    expect(ufOfBrazilianCity('Sao Paulo')).toBe('SP');
+    expect(ufOfBrazilianCity('Francisco Beltrão')).toBe('PR');
+    expect(ufOfBrazilianCity('Atlantis')).toBeUndefined();
   });
 });

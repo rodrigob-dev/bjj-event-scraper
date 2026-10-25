@@ -53,6 +53,38 @@ const COUNTRY_WORDS = new Set([
   'france', 'españa', 'spain', 'italia', 'italy', 'new zealand', 'nz',
 ]);
 
+// Cidade brasileira → UF, p/ quando a fonte manda só a cidade ("Belém, Brazil").
+// Capitais + polos de campeonato + tudo que IBJJF/CBJJ/Smoothcomp já listaram.
+// Chave normalizada (sem acento, minúscula). Não precisa ser completa: cidade
+// fora daqui continua BR, só sem UF.
+export const UF_BY_CITY: Record<string, string> = {
+  // capitais
+  'rio branco': 'AC', maceio: 'AL', macapa: 'AP', manaus: 'AM', salvador: 'BA', fortaleza: 'CE',
+  brasilia: 'DF', vitoria: 'ES', goiania: 'GO', 'sao luis': 'MA', cuiaba: 'MT', 'campo grande': 'MS',
+  'belo horizonte': 'MG', belem: 'PA', 'joao pessoa': 'PB', curitiba: 'PR', recife: 'PE', teresina: 'PI',
+  'rio de janeiro': 'RJ', natal: 'RN', 'porto alegre': 'RS', 'porto velho': 'RO', 'boa vista': 'RR',
+  florianopolis: 'SC', 'sao paulo': 'SP', aracaju: 'SE', palmas: 'TO',
+  // polos de campeonato
+  barueri: 'SP', campinas: 'SP', santos: 'SP', guarulhos: 'SP', osasco: 'SP', 'santo andre': 'SP',
+  'sao bernardo do campo': 'SP', 'sao jose dos campos': 'SP', sorocaba: 'SP', 'ribeirao preto': 'SP',
+  niteroi: 'RJ', petropolis: 'RJ', 'duque de caxias': 'RJ', 'nova iguacu': 'RJ', teresopolis: 'RJ',
+  'juiz de fora': 'MG', uberlandia: 'MG', contagem: 'MG', 'patos de minas': 'MG',
+  londrina: 'PR', maringa: 'PR', 'francisco beltrao': 'PR',
+  joinville: 'SC', blumenau: 'SC', chapeco: 'SC', itapema: 'SC', tijucas: 'SC', itajai: 'SC',
+  'sao jose': 'SC', 'balneario camboriu': 'SC',
+  'caxias do sul': 'RS', pelotas: 'RS', 'santa maria': 'RS', cachoeirinha: 'RS', 'julio de castilhos': 'RS',
+  'feira de santana': 'BA', 'vitoria da conquista': 'BA', 'madre de deus': 'BA', 'lauro de freitas': 'BA',
+  'amelia rodrigues': 'BA',
+  'afogados da ingazeira': 'PE', ouricuri: 'PE', garanhuns: 'PE', caruaru: 'PE', olinda: 'PE',
+  'jaboatao dos guararapes': 'PE', 'campina grande': 'PB', 'vila velha': 'ES', anapolis: 'GO',
+  taguatinga: 'DF', ceilandia: 'DF', 'cruzeiro novo': 'DF', parauapebas: 'PA',
+};
+
+/** UF de uma cidade brasileira conhecida, ou undefined. */
+export function ufOfBrazilianCity(city: string): string | undefined {
+  return UF_BY_CITY[norm(city)];
+}
+
 export function norm(s: string): string {
   return s
     .normalize('NFD')
@@ -76,6 +108,10 @@ function isCountryWord(token: string, countryHuman?: string): boolean {
   const t = norm(token).replace(/\.$/, '');
   return COUNTRY_WORDS.has(t) || (!!countryHuman && t === norm(countryHuman));
 }
+
+// Trecho que é endereço de rua, não cidade: começa com número ("8 Lambert Rd",
+// "205 Wolf street") ou traz "Address:".
+const STREET_RE = /^\d+\s+\S|\baddress:/i;
 
 const LOWER_PARTICLES = new Set([
   'de', 'da', 'do', 'das', 'dos', 'e', 'di', 'del', 'della', 'la', 'le', 'les', 'y', 'of',
@@ -113,17 +149,21 @@ export interface PlaceParts {
 export function parsePlace(raw: string, countryCode?: string, countryHuman?: string): PlaceParts {
   let s = raw.replace(/\s+/g, ' ').trim();
   if (!s) return {};
-  s = s.replace(/^\d{4,6}\s+/, ''); // CEP/PLZ na frente: "63743 Aschaffenburg"
+  s = s.replace(/^(?:[A-Z]{1,2}-)?\d{4,6}\s+/, ''); // CEP/PLZ na frente: "63743 Aschaffenburg", "A-2344 Maria Enzersdorf"
 
   const parts = s.split(',').map((p) => p.trim()).filter(Boolean);
   let state: string | undefined;
 
   while (parts.length > 1 && isCountryWord(parts[parts.length - 1]!, countryHuman)) parts.pop();
+  // Endereço de rua no lugar da cidade ("8 Lambert Rd, Indooroopilly",
+  // "Deakin University … Address: 221 Burwood Hwy, Burwood VIC 3125"): a
+  // cidade é o trecho seguinte; sozinho, um endereço não é cidade.
+  while (parts.length && STREET_RE.test(parts[0]!)) parts.shift();
   if (parts.length === 0) return {};
 
-  // ZIP no fim do último trecho: "CA 91406", "NY - 11550", "88332-055"
+  // CEP/ZIP no fim do último trecho: "CA 91406", "NY - 11550", "88332-055", "VIC 3125"
   parts[parts.length - 1] = parts[parts.length - 1]!
-    .replace(/\s*-?\s*\d{5}(-\d{3,4})?$/, '')
+    .replace(/\s*-?\s*\d{4,5}(-\d{3,4})?$/, '')
     .trim();
 
   if (parts.length >= 2) {
@@ -173,7 +213,12 @@ export function parsePlace(raw: string, countryCode?: string, countryHuman?: str
     }
   }
 
-  city = titleCaseIfShouting(city.replace(/\s+/g, ' ').trim());
+  city = city
+    .replace(/\s*\(\d+\)$/, '') // "Toulouse (31)": departamento francês
+    .replace(/\s+\d{1,2}$/, '') // "Dublin 15": distrito postal
+    .replace(/\s+/g, ' ')
+    .trim();
+  city = titleCaseIfShouting(city);
 
   // Só a região, sem cidade ("MINAS GERAIS", "Yorkshire" não; "Quebec" é cidade).
   if (city && !ALSO_A_CITY.has(norm(city))) {

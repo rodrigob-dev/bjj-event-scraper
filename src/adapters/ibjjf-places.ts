@@ -9,28 +9,10 @@ export type Place = { cc: string; state?: string; name?: string };
 
 type Row = [cc: string, state?: string, name?: string];
 
-const BR: Record<string, string> = {
-  // capitais
-  'rio branco': 'AC', maceio: 'AL', macapa: 'AP', manaus: 'AM', salvador: 'BA', fortaleza: 'CE',
-  brasilia: 'DF', vitoria: 'ES', goiania: 'GO', 'sao luis': 'MA', cuiaba: 'MT', 'campo grande': 'MS',
-  'belo horizonte': 'MG', belem: 'PA', 'joao pessoa': 'PB', curitiba: 'PR', recife: 'PE', teresina: 'PI',
-  'rio de janeiro': 'RJ', natal: 'RN', 'porto alegre': 'RS', 'porto velho': 'RO', 'boa vista': 'RR',
-  florianopolis: 'SC', 'sao paulo': 'SP', aracaju: 'SE', palmas: 'TO',
-  // polos de campeonato
-  barueri: 'SP', campinas: 'SP', santos: 'SP', guarulhos: 'SP', osasco: 'SP', 'santo andre': 'SP',
-  'sao bernardo do campo': 'SP', 'sao jose dos campos': 'SP', sorocaba: 'SP', 'ribeirao preto': 'SP',
-  niteroi: 'RJ', petropolis: 'RJ', 'duque de caxias': 'RJ', 'nova iguacu': 'RJ', teresopolis: 'RJ',
-  'juiz de fora': 'MG', uberlandia: 'MG', contagem: 'MG', 'patos de minas': 'MG',
-  londrina: 'PR', maringa: 'PR', 'francisco beltrao': 'PR',
-  joinville: 'SC', blumenau: 'SC', chapeco: 'SC', itapema: 'SC', tijucas: 'SC', itajai: 'SC',
-  'sao jose': 'SC', 'balneario camboriu': 'SC',
-  'caxias do sul': 'RS', pelotas: 'RS', 'santa maria': 'RS', cachoeirinha: 'RS', 'julio de castilhos': 'RS',
-  'feira de santana': 'BA', 'vitoria da conquista': 'BA', 'madre de deus': 'BA', 'lauro de freitas': 'BA',
-  'amelia rodrigues': 'BA',
-  'afogados da ingazeira': 'PE', ouricuri: 'PE', garanhuns: 'PE', caruaru: 'PE', olinda: 'PE',
-  'jaboatao dos guararapes': 'PE', 'campina grande': 'PB', 'vila velha': 'ES', anapolis: 'GO',
-  taguatinga: 'DF', ceilandia: 'DF', 'cruzeiro novo': 'DF', parauapebas: 'PA',
-};
+import { UF_BY_CITY } from '../normalize/places.js';
+
+const BR = UF_BY_CITY;
+
 // Grafias que o CMS da federação usa e não bate com a tabela.
 const BR_ALIASES: Record<string, string> = {
   'balneario camburiu': 'Balneário Camboriú',
