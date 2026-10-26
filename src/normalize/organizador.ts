@@ -7,7 +7,11 @@
 // Ordem por linha:
 //   1. o que a própria fonte afirma: no Smoothcomp, o subdomínio do evento
 //      (`naga.smoothcomp.com` → NAGA); num calendário de federação, o organizador
-//      que o adapter declara ("IBJJF", "CBJJ/FPJJ" → o primeiro nome da base);
+//      que o adapter declara ("IBJJF", "CBJJ/FPJJ" → o primeiro nome da base).
+//      Exceção: a conta de uma federação no Smoothcomp lista também os eventos que
+//      ela só sanciona, então uma marca com `tituloVenceHost` que é o melhor
+//      casamento do título ("Grappling Industries TORONTO" na conta da Ontario)
+//      vence o subdomínio;
 //   2. os padrões de título da base (sem acento e sem caixa, com borda de palavra;
 //      o trecho casado mais longo vence, empate fica com o que aparece antes);
 //   3. nada: `organizer`/`organizerId` ausentes ("Other" no filtro do app).
@@ -35,6 +39,10 @@ export const organizerEntrySchema = z
     hosts: z.array(z.string().regex(SUBDOMAIN, 'host é só o subdomínio do Smoothcomp, minúsculo')),
     padroes: z.array(z.string().min(MIN_PATTERN, `padrão com menos de ${MIN_PATTERN} caracteres casa demais`)),
     cor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'cor deve ser #RRGGBB').optional(),
+    // Marca que sempre roda o próprio evento: citada no título, vence o host. Opt-in
+    // por entrada porque "organizador no título vence federação no host" em geral
+    // viraria os ADCC Opens que a BJJFP e a SSWF de fato organizam.
+    tituloVenceHost: z.boolean().optional(),
   })
   .strict();
 
@@ -192,16 +200,18 @@ export interface OrganizerInput {
 /** Quem organiza a linha, ou null. Nunca devolve algo fora da base. */
 export function resolveOrganizer(row: OrganizerInput, base: OrganizerBase = organizerBase()): OrganizerMatch | null {
   const sub = smoothcompSubdomain(row.url);
+  const t = byTitle(row.title, base);
   if (sub) {
     const e = base.byHost.get(sub);
-    if (e) return { entry: e, via: 'host' };
+    // A marca só vence quando é o melhor casamento do título: "Marca" dentro do
+    // nome mais longo de outra marca não está nomeando quem organiza.
+    if (e) return t?.tituloVenceHost && t !== e ? { entry: t, via: 'title' } : { entry: e, via: 'host' };
   } else if (sub === undefined && row.declared) {
     // Num evento do Smoothcomp o que vale é o subdomínio; "declarado" só existe
     // nos calendários das próprias federações.
     const e = byDeclared(row.declared, base);
     if (e) return { entry: e, via: 'declared' };
   }
-  const t = byTitle(row.title, base);
   return t ? { entry: t, via: 'title' } : null;
 }
 

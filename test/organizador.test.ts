@@ -92,6 +92,8 @@ describe('data/organizadores.json — invariantes da base', () => {
     expect(organizerEntrySchema.safeParse({ ...ok, tipo: 'academia' }).success).toBe(false);
     expect(organizerEntrySchema.safeParse({ ...ok, cor: 'red' }).success).toBe(false);
     expect(organizerEntrySchema.safeParse({ ...ok, extra: 1 }).success).toBe(false);
+    expect(organizerEntrySchema.safeParse({ ...ok, tituloVenceHost: true }).success).toBe(true);
+    expect(organizerEntrySchema.safeParse({ ...ok, tituloVenceHost: 'sim' }).success).toBe(false);
   });
 
   it('baseErrors pega id repetido, host com dois donos e regex quebrada', () => {
@@ -127,9 +129,22 @@ describe('resolvedor — ordem host → título → nada', () => {
   });
 
   it('subdomínio fora da base cai para o título', () => {
-    expect(resolveOrganizer({ url: 'https://sjjfnz.smoothcomp.com/en/event/1', title: 'ADCC OPEN > Auckland' })).toMatchObject({
+    expect(resolveOrganizer({ url: 'https://conta-sem-dono.smoothcomp.com/en/event/1', title: 'ADCC OPEN > Auckland' })).toMatchObject({
       via: 'title', entry: { id: 'adcc' },
     });
+  });
+
+  it('tituloVenceHost: a marca vence o host só quando é o melhor casamento do título', () => {
+    const flagged = buildOrganizerBase([
+      { ...entry('fed', [], ['fed']), tipo: 'federacao' },
+      { ...entry('marca', ['Marca']), tituloVenceHost: true },
+      entry('outra', ['Outra Marca Longa']),
+    ]);
+    const id = (title: string) => resolveOrganizer({ url: 'https://fed.smoothcomp.com/en/event/1', title }, flagged)?.entry.id;
+    expect(id('Marca Toronto')).toBe('marca');
+    expect(id('Outra Marca Longa Cup')).toBe('fed'); // o título nomeia a outra marca, sem a flag: fica o host
+    expect(id('Open (Marca rules)')).toBe('fed');
+    expect(id('Copa da Federação')).toBe('fed');
   });
 
   it('host genérico (smoothcomp.com, www) vai direto ao título', () => {
