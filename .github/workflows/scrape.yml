@@ -15,6 +15,11 @@ concurrency:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    # The `secrets` context is not allowed in a step's `if:` (GitHub rejects the
+    # whole file and logs a failed run with no jobs on every push). A job-level
+    # env copy of the token is, so the dispatch step tests that instead.
+    env:
+      DISPATCH_TOKEN: ${{ secrets.SENSEI_WEB_DISPATCH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -63,12 +68,10 @@ jobs:
       # cron diário do sensei-web faz o sync. `-f` falha alto em 3xx/4xx — o
       # repo já mudou de nome duas vezes, e um redirect silencioso não dispara nada.
       - name: Notify sensei-web (repository_dispatch scraper-updated)
-        if: ${{ steps.commit.outputs.changed == 'true' && secrets.SENSEI_WEB_DISPATCH_TOKEN != '' }}
-        env:
-          TOKEN: ${{ secrets.SENSEI_WEB_DISPATCH_TOKEN }}
+        if: ${{ steps.commit.outputs.changed == 'true' && env.DISPATCH_TOKEN != '' }}
         run: |
           curl -fsS -X POST \
-            -H "Authorization: Bearer $TOKEN" \
+            -H "Authorization: Bearer $DISPATCH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/rodrigob-dev/sensei-web/dispatches \
             -d '{"event_type":"scraper-updated"}'
