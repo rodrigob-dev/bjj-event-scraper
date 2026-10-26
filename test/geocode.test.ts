@@ -24,11 +24,12 @@ const NOW = new Date('2026-10-25T12:00:00Z');
 
 describe('geocodeEvents — tabela → cache → Nominatim', () => {
   it('marca a origem: fonte, tabela, cache; não toca em linha sem cidade', async () => {
-    const cache: GeocodeCache = { 'lakeland|FL|US': { lat: 28.0395, lng: -81.9498, at: '2026-10-25' } };
+    // Cidades inventadas: as reais já estão na tabela, que vence o cache.
+    const cache: GeocodeCache = { 'zootopia|FL|US': { lat: 28.0395, lng: -81.9498, at: '2026-10-25' } };
     const events = [
       mk({ source: 'smoothcomp', city: 'Lisbon', countryCode: 'PT', lat: 38.7, lng: -9.1 }),
       mk({ city: 'Las Vegas', state: 'NV', countryCode: 'US' }),
-      mk({ city: 'Lakeland', state: 'FL', countryCode: 'US' }),
+      mk({ city: 'Zootopia', state: 'FL', countryCode: 'US' }),
       mk({ location: 'Somewhere' }),
     ];
     const { lookup, calls } = fakeLookup({});
@@ -45,35 +46,35 @@ describe('geocodeEvents — tabela → cache → Nominatim', () => {
   it('online: busca uma vez por cidade, grava no cache (acerto e miss) e não repete o miss', async () => {
     const cache: GeocodeCache = {};
     const events = [
-      mk({ city: 'Frisco', state: 'TX', countryCode: 'US' }),
-      mk({ city: 'FRISCO', state: 'TX', countryCode: 'US' }),
+      mk({ city: 'Atlantis', state: 'TX', countryCode: 'US' }),
+      mk({ city: 'ATLANTIS', state: 'TX', countryCode: 'US' }),
       mk({ city: 'Online Zoom Course', countryCode: 'CA' }),
       mk({ city: 'Online Zoom Course', countryCode: 'CA' }),
     ];
     const { lookup, calls } = fakeLookup({
-      'Frisco, Texas, United States': { lat: 33.1507, lng: -96.8236 },
+      'Atlantis, Texas, United States': { lat: 33.1507, lng: -96.8236 },
       'Online Zoom Course, Canada': null,
     });
     const r = await geocodeEvents(events, { cache, online: true, lookup, now: NOW });
-    expect(calls).toEqual(['Frisco, Texas, United States', 'Online Zoom Course, Canada']);
+    expect(calls).toEqual(['Atlantis, Texas, United States', 'Online Zoom Course, Canada']);
     expect(events[0]).toMatchObject({ lat: 33.1507, lng: -96.8236, geo: 'nominatim' });
     expect(events[1]).toMatchObject({ lat: 33.1507, geo: 'nominatim' });
     expect(events[2]!.lat).toBeUndefined();
-    expect(cache['frisco|TX|US']).toMatchObject({ lat: 33.1507, lng: -96.8236, at: '2026-10-25', label: 'Frisco, Texas, United States (osm)' });
+    expect(cache['atlantis|TX|US']).toMatchObject({ lat: 33.1507, lng: -96.8236, at: '2026-10-25', label: 'Atlantis, Texas, United States (osm)' });
     expect(cache['online zoom course||CA']).toBeNull();
     expect(r).toMatchObject({ nominatim: 2, requests: 2, unresolved: ['online zoom course||CA'], cacheChanged: true });
   });
 
   it('offline (sem GEOCODE=1): zero requisições; miss do cache não é rebuscado nem online', async () => {
     const cache: GeocodeCache = { 'nowhere||US': null };
-    const events = [mk({ city: 'Nowhere', countryCode: 'US' }), mk({ city: 'Frisco', state: 'TX', countryCode: 'US' })];
-    const { lookup, calls } = fakeLookup({ 'Frisco, Texas, United States': { lat: 1, lng: 2 } });
+    const events = [mk({ city: 'Nowhere', countryCode: 'US' }), mk({ city: 'Atlantis', state: 'TX', countryCode: 'US' })];
+    const { lookup, calls } = fakeLookup({ 'Atlantis, Texas, United States': { lat: 1, lng: 2 } });
     const off = await geocodeEvents(events, { cache, online: false, lookup, now: NOW });
     expect(calls).toEqual([]);
-    expect(off.unresolved).toEqual(['frisco|TX|US', 'nowhere||US']);
+    expect(off.unresolved).toEqual(['atlantis|TX|US', 'nowhere||US']);
     expect(off.cacheChanged).toBe(false);
     const on = await geocodeEvents(events, { cache, online: true, lookup, now: NOW });
-    expect(calls).toEqual(['Frisco, Texas, United States']); // o miss persistido fica quieto
+    expect(calls).toEqual(['Atlantis, Texas, United States']); // o miss persistido fica quieto
     expect(on.unresolved).toEqual(['nowhere||US']);
   });
 
