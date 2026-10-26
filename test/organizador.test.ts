@@ -100,6 +100,13 @@ describe('data/organizadores.json — invariantes da base', () => {
     expect(eventos.sort()).toEqual(['ejo', 'sio']);
   });
 
+  it('cor só onde o site ou o logo da organização a mostra', () => {
+    // Fonte de cada uma no docs/events-v2.md; uma cor nova entra com a fonte dela.
+    const comCor = raw.filter((e) => e.cor).map((e) => e.id).sort();
+    expect(comCor).toEqual(['agf', 'chewjitsu-open', 'fuji-bjj', 'grappling-x', 'jbjjf', 'lutador', 'nabjjf', 'newbreed', 'odd-fox-events', 'pro-sport-grappling']);
+    for (const e of raw) if (e.cor) expect(e.cor, e.id).toMatch(/^#[0-9A-F]{6}$/);
+  });
+
   it('o schema da entrada barra site http, padrão curto, host com maiúscula e campo a mais', () => {
     const ok = entry('x-y', ['abc'], ['xy']);
     expect(organizerEntrySchema.safeParse(ok).success).toBe(true);
