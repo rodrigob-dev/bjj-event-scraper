@@ -35,30 +35,9 @@ export const EMITTED_SPORTS: ReadonlySet<Sport> = new Set<Sport>(['bjj', 'grappl
 const GI_GROUPS = new Set(['1']);
 const NOGI_GROUPS = new Set(['7', '3', '4', '24']);
 
-// Subdomínio do Smoothcomp → nome do organizador. Fora da tabela, o próprio
-// subdomínio é o chip (é a marca que o organizador escolheu).
-const ORGANIZER_BY_HOST: Record<string, string> = {
-  ligabjj: 'LigaBJJ', grapplingindustries: 'Grappling Industries', fujibjj: 'FUJI BJJ',
-  allstarsbjj: 'All Stars BJJ', agf: 'AGF', naga: 'NAGA', newbreedbjj: 'NewBreed',
-  submissionchallenge: 'Submission Challenge', nzbjjf: 'NZBJJF', compnet: 'Compnet',
-  avagrappling: 'AVA Grappling', 'ontario-jiu-jitsu': 'Ontario Jiu-Jitsu', sbjjf: 'SBJJF',
-  bjjao: 'BJJAO', subonly: 'Sub Only', pbjjf: 'PBJJF', francegrappling: 'France Grappling',
-  grapplingx: 'GrapplingX', bjjfnl: 'BJJF NL', empiregrappling: 'Empire Grappling', dbjj: 'DBJJ',
-  adcc: 'ADCC', bjj247: 'BJJ 24/7', nanka: 'NANKA', 'aus-grappling-federation': 'Australian Grappling Federation',
-  spainbjjtour: 'Spain BJJ Tour', goodfight: 'Good Fight', afbjj: 'AFBJJ', abjjc: 'ABJJC',
-  fijjd: 'FIJJD', sjjif: 'SJJIF', nabjjf: 'NABJJF', copagaucha: 'Copa Gaúcha', jjwl: 'Jiu Jitsu World League',
-};
-// Host genérico (smoothcomp.com): organizadores grandes que aparecem no título.
-const ORGANIZER_BY_TITLE: Array<[RegExp, string]> = [
-  [/\bNAGA\b/i, 'NAGA'],
-  [/grappling industries/i, 'Grappling Industries'],
-  [/\bFUJI\b/i, 'FUJI BJJ'],
-  [/\bADCC\b/i, 'ADCC'],
-  [/\bnew ?breed\b/i, 'NewBreed'],
-  [/\bgood ?fight\b/i, 'Good Fight'],
-  [/\bAGF\b/i, 'AGF'],
-  [/jiu[ -]?jitsu world league|\bJJWL\b/i, 'Jiu Jitsu World League'],
-];
+// Quem organiza (o subdomínio do evento ou uma marca no título) não é decidido
+// aqui: src/normalize/organizador.ts resolve contra a base aprovada
+// data/organizadores.json, igual para todas as fontes.
 
 interface SmoothcompEvent {
   id?: number | string;
@@ -130,19 +109,6 @@ export function sportOf(groups: string[] | undefined): Sport {
   return SPORT_PRIORITY.find((s) => sports.has(s)) ?? 'other';
 }
 
-/** Nome do organizador: subdomínio do evento ou, no host genérico, o título. */
-export function organizerOf(url: string, title: string): string | undefined {
-  let host: string;
-  try {
-    host = new URL(url).hostname.toLowerCase();
-  } catch {
-    return undefined;
-  }
-  const m = host.match(/^([a-z0-9-]+)\.smoothcomp\.com$/);
-  if (m && m[1] !== 'www') return ORGANIZER_BY_HOST[m[1]!] ?? m[1];
-  return ORGANIZER_BY_TITLE.find(([re]) => re.test(title))?.[1];
-}
-
 /** ISO alpha-2 do campo location_country. "GB-SCT"/"GB-NIR" (subdivisão ISO 3166-2) vira "GB". */
 export function countryCodeOf(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
@@ -190,7 +156,6 @@ export const smoothcompAdapter: SourceAdapter = {
 
       const gi = groups.some((g) => GI_GROUPS.has(g));
       const nogi = groups.some((g) => NOGI_GROUPS.has(g));
-      const organizer = organizerOf(e.url, e.title);
 
       out.push({
         title: e.title,
@@ -211,7 +176,6 @@ export const smoothcompAdapter: SourceAdapter = {
         ...(gi || nogi ? { gi, nogi } : {}),
         kids: kidsFromTitle(e.title),
         sport,
-        ...(organizer ? { organizer } : {}),
       });
     }
     return out;

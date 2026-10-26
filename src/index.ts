@@ -14,6 +14,7 @@ import { closeBrowser } from './browser.js';
 import { hasDatabase, upsertEvents } from './db.js';
 import { fetchEventDetail, type EventDetail } from './enrich/ibjjf-detail.js';
 import { geocodeEvents, loadGeocodeCache, nominatimLookup, saveGeocodeCache } from './normalize/geocode.js';
+import { applyOrganizer } from './normalize/organizador.js';
 
 // Federações cuja imagem, prazo de inscrição e endereço vivem na página de
 // detalhe (não na API do calendário).
@@ -103,6 +104,7 @@ async function main() {
   const preservedSources = [...failedSources];
   for (const ev of previous) {
     if (preservedSources.includes(ev.source) && !isPast(ev.endDateISO ?? ev.dateISO)) {
+      applyOrganizer(ev); // o JSON anterior pode ter um organizer de antes da base (subdomínio cru)
       collected.push(ev);
     }
   }

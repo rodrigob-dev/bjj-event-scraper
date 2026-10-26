@@ -7,6 +7,7 @@ import type { RawEvent, ScrapedEvent, EventDetails } from '../types.js';
 import { parseToDate, toISODate, toDisplayPtBr, isPast } from './dates.js';
 import { classifyType, iconFor, ctaFor } from './classify.js';
 import { dedupKey } from './dedup.js';
+import { organizerFields, resolveOrganizer } from './organizador.js';
 
 export interface NormalizeContext {
   source: string;
@@ -16,7 +17,10 @@ export interface NormalizeContext {
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Copia só os campos v2 bem formados; o resto cai fora em silêncio (ausente = desconhecido). */
+/**
+ * Copia só os campos v2 bem formados; o resto cai fora em silêncio (ausente = desconhecido).
+ * organizer/organizerId ficam de fora: vêm do resolvedor, nunca direto do adapter.
+ */
 export function pickDetails(raw: EventDetails): EventDetails {
   const d: EventDetails = {};
   if (raw.sourceId) d.sourceId = raw.sourceId;
@@ -36,7 +40,6 @@ export function pickDetails(raw: EventDetails): EventDetails {
   if (typeof raw.gi === 'boolean') d.gi = raw.gi;
   if (typeof raw.nogi === 'boolean') d.nogi = raw.nogi;
   if (typeof raw.kids === 'boolean') d.kids = raw.kids;
-  if (raw.organizer?.trim()) d.organizer = raw.organizer.trim();
   if (raw.sport) d.sport = raw.sport;
   if (raw.registrationDeadlineISO && ISO_DAY.test(raw.registrationDeadlineISO)) {
     d.registrationDeadlineISO = raw.registrationDeadlineISO;
@@ -50,6 +53,7 @@ export function pickDetails(raw: EventDetails): EventDetails {
  */
 export function normalizeEvents(raws: RawEvent[], ctx: NormalizeContext): ScrapedEvent[] {
   const out: ScrapedEvent[] = [];
+  const unknownDeclared = new Set<string>();
   for (const raw of raws) {
     const d = parseToDate(raw.rawDate);
     if (!d) {
@@ -76,6 +80,9 @@ export function normalizeEvents(raws: RawEvent[], ctx: NormalizeContext): Scrape
       raw.imageUrl && /^https?:\/\//i.test(raw.imageUrl) ? raw.imageUrl : undefined;
 
     const type = classifyType(raw.title, raw.typeHint);
+    const declared = raw.organizer?.trim() || undefined;
+    const org = resolveOrganizer({ url: raw.url, title: raw.title, declared });
+    if (declared && org?.via !== 'declared') unknownDeclared.add(declared);
     out.push({
       id: dedupKey(raw.title, dateISO),
       title: raw.title.trim(),
@@ -92,7 +99,12 @@ export function normalizeEvents(raws: RawEvent[], ctx: NormalizeContext): Scrape
       ...(raw.accentColor ? { accentColor: raw.accentColor } : {}),
       scrapedAt: ctx.scrapedAt,
       ...pickDetails(raw),
+      ...organizerFields(org),
     });
+  }
+  // Federação nova assinando eventos: entra na base com site, senão a linha fica sem organizer.
+  for (const name of unknownDeclared) {
+    console.warn(`::notice::[${ctx.source}] organizador "${name}" fora de data/organizadores.json`);
   }
   return out;
 }

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { smoothcompAdapter, sportOf, organizerOf, countryCodeOf } from '../src/adapters/smoothcomp.js';
+import { smoothcompAdapter, sportOf, countryCodeOf } from '../src/adapters/smoothcomp.js';
 import { normalizeEvents } from '../src/normalize/index.js';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
@@ -44,7 +44,7 @@ describe('smoothcomp v2 — campos estruturados', () => {
     expect(e.state).toBeUndefined();
     expect(e.lat).toBeCloseTo(9.9759165);
     expect(e.lng).toBeCloseTo(-84.1511479);
-    expect(e.organizer).toBe('LigaBJJ');
+    expect(e.organizer).toBeUndefined(); // quem organiza sai da base, na normalização
     expect(e.gi).toBe(true);
     expect(e.nogi).toBe(false);
     expect(e.kids).toBe(false);
@@ -99,18 +99,6 @@ describe('smoothcomp v2 — campos estruturados', () => {
     expect(byId(33303).kids).toBe(true); // "Brave Kids Los Angeles"
     expect(byId(32995).kids).toBe(false);
   });
-
-  it('organizador: subdomínio conhecido, subdomínio cru, título no host genérico', () => {
-    expect(byId(32995).organizer).toBe('NAGA');
-    expect(byId(27054).organizer).toBe('Grappling Industries');
-    expect(byId(29071).organizer).toBe('ADCC');
-    expect(byId(24801).organizer).toBe('ABJJC');
-    expect(byId(33303).organizer).toBe('ibjjff'); // fora da tabela: subdomínio cru
-    expect(byId(34463).organizer).toBeUndefined(); // host genérico, título sem marca
-    expect(organizerOf('https://smoothcomp.com/en/event/1', 'NAGA Houston')).toBe('NAGA');
-    expect(organizerOf('https://www.smoothcomp.com/en/event/1', 'Grappling Industries X')).toBe('Grappling Industries');
-    expect(organizerOf('https://smoothcomp.com/en/event/1', 'Copa X')).toBeUndefined();
-  });
 });
 
 describe('smoothcomp v2 — normalização', () => {
@@ -123,6 +111,20 @@ describe('smoothcomp v2 — normalização', () => {
     expect(e.endDateISO).toBe('2026-10-25');
     expect(e.countryCode).toBe('CR');
     expect(e.sport).toBe('bjj');
+  });
+
+  it('organizador pela base: subdomínio mapeado, subdomínio cru vira ausente', () => {
+    expect(parsed.every((e) => e.organizer === undefined)).toBe(true); // o adapter não nomeia
+    expect(find(27746)).toMatchObject({ organizer: 'LigaBJJ', organizerId: 'ligabjj' });
+    expect(find(32995)).toMatchObject({ organizer: 'NAGA', organizerId: 'naga' });
+    expect(find(27054)).toMatchObject({ organizer: 'Grappling Industries', organizerId: 'grappling-industries' });
+    expect(find(29071)).toMatchObject({ organizer: 'ADCC', organizerId: 'adcc' });
+    expect(find(24801)).toMatchObject({ organizer: 'ABJJC', organizerId: 'abjjc' });
+    expect(find(29250)).toMatchObject({ organizer: 'BJJ247', organizerId: 'bjj247' });
+    // ibjjff.smoothcomp.com ("Brave Kids") não está na base: nada, nunca "ibjjff".
+    expect(find(33303).organizer).toBeUndefined();
+    expect(find(33303).organizerId).toBeUndefined();
+    expect(find(34463).organizer).toBeUndefined(); // host genérico, título sem marca
   });
 
   it('enddate antes do startdate vira evento de 1 dia', () => {

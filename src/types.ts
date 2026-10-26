@@ -33,7 +33,11 @@ export interface EventDetails {
   gi?: boolean;
   nogi?: boolean;
   kids?: boolean;
-  organizer?: string; // quem organiza, p/ o chip: "IBJJF", "CBJJ", "NAGA", host do Smoothcomp
+  // Quem organiza, p/ wordmark e chip: o `nome` de uma entrada de data/organizadores.json
+  // ("IBJJF", "NAGA", "Grappling Industries"), nunca o Smoothcomp nem um subdomínio cru.
+  // No RawEvent é o que o adapter declara; a normalização troca pelo da base.
+  organizer?: string;
+  organizerId?: string; // `id` da mesma entrada ("naga"); vem junto com organizer
   sport?: Sport;
   registrationDeadlineISO?: string; // YYYY-MM-DD, só quando a fonte declara — nunca a data do evento
 }
