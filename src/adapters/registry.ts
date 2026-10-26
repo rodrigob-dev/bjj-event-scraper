@@ -1,7 +1,8 @@
 // Adapters ativos. Prioridade maior vence em colisão de dedup:
 // federações nacionais/estaduais (CBJJ, CBJJO, FJJRIO, FPJJ) = 3 > organizadores dos
-// próprios eventos (IBJJF, AJP, JJWL, SJJIF) = 2 > agregador (Smoothcomp) = 1.
-// Em empate fica o primeiro da lista: a CBJJ vem antes da FPJJ (etapas nacionais em SP).
+// próprios eventos (IBJJF, AJP, JJWL, NABJJF, SJJIF) = 2 > agregador (Smoothcomp) = 1.
+// Em empate fica o primeiro da lista: a CBJJ vem antes da FPJJ (etapas nacionais em
+// SP) e a NABJJF antes da SJJIF, que lista os eventos dela.
 
 import type { SourceAdapter } from '../types.js';
 import { createIbjjfApiAdapter } from './ibjjf-api.js';
@@ -12,6 +13,7 @@ import { fjjrioAdapter } from './fjjrio.js';
 import { cbjjoAdapter } from './cbjjo.js';
 import { sjjifAdapter } from './sjjif.js';
 import { fpjjAdapter } from './fpjj.js';
+import { nabjjfAdapter } from './nabjjf.js';
 
 export const adapters: SourceAdapter[] = [
   createIbjjfApiAdapter({ name: 'cbjj', baseUrl: 'https://cbjj.com.br', priority: 3 }),
@@ -21,6 +23,7 @@ export const adapters: SourceAdapter[] = [
   createIbjjfApiAdapter({ name: 'ibjjf', baseUrl: 'https://ibjjf.com', priority: 2 }),
   ajpAdapter,
   jjwlAdapter,
+  nabjjfAdapter,
   sjjifAdapter,
   smoothcompAdapter,
 ];

@@ -28,14 +28,16 @@ endpoint JSON interno. Playwright (headless) existe só como *fallback* isolado
 | JJWL | `http` | menu TOURNAMENTS de `/jjwl/tournaments` lista `/events/<slug>` (um por GI/NoGI × Youth/Adults); cada página traz "Event Day", "Event Address", "Application deadline" — ~32 páginas por coleta |
 | FJJRIO | `http` | home `fjjrio.com.br/` renderiza "Próximos Eventos" (categoria, data PT, ginásio); a página do evento dá "Término da Inscrição" |
 | CBJJO | `http` | o calendário em cbjjo.com.br é JPG; a lista é o portal de inscrições `cbjjo.beta.portalsamurai.com` (cards) + página do evento ("DE … ATÉ …", "Inscrições ATÉ", "Local") |
+| NABJJF | `http` | `nabjjf.com/tournaments` (Next.js SSR) tem a aba "Upcoming" com `/events/<slug>`; a página do evento traz `<dl>` Date / Venue + endereço / Format (Gi & No-Gi, Kids…) e o prazo na escada de preços ("Closes Jan 13"). ~5 páginas por coleta; robots proíbe `/api/` (não usado) |
 | FPJJ | `http` | fpjj.com.br → `www.fpjjcompetidor.com.br/calendario-<ano>/` (WordPress) traz um `const eventsData = [...]` inline (título, data PT sem ano, `local` "Cidade - SP" ou ginásio, `realizacao` FPJJ ou CBJJ/FPJJ); sem link de inscrição, sourceUrl é o calendário. Busca o ano corrente e o seguinte (404 até publicarem) |
 
 Prioridade em dedup: federações nacionais/estaduais (`cbjj`, `cbjjo`, `fjjrio`, `fpjj` = 3) >
-organizadores dos próprios eventos (`ibjjf`, `ajp`, `jjwl`, `sjjif` = 2) > agregador (`smoothcomp` = 1).
+organizadores dos próprios eventos (`ibjjf`, `ajp`, `jjwl`, `nabjjf`, `sjjif` = 2) > agregador (`smoothcomp` = 1).
+Em empate fica o primeiro do registry (CBJJ antes da FPJJ; NABJJF antes da SJJIF, que lista os eventos dela).
 
-Sondadas e deixadas de fora (2026-10-25): **BJJ Tour** (4 eventos, inscrição no smoothcomp.com — já
-no feed; página com spam injetado), **NABJJF** (Next.js renderizado no servidor, 4 eventos que a SJJIF já lista;
-robots proíbe `/api/`).
+Sondada e deixada de fora (2026-10-25): **BJJ Tour** (4 eventos, inscrição no smoothcomp.com — já
+no feed; página com spam injetado). A NABJJF entrou mesmo com os 4 eventos já no feed (2 pela SJJIF,
+2 só pelo Smoothcomp): é a única fonte que dá o prazo, o ginásio com endereço e o formato deles.
 
 ## Scripts
 
