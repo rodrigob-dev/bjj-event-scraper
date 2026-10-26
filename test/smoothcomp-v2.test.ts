@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { smoothcompAdapter, sportOf, countryCodeOf } from '../src/adapters/smoothcomp.js';
+import { smoothcompAdapter, sportOf, countryCodeOf, isPlatformNoise } from '../src/adapters/smoothcomp.js';
 import { normalizeEvents } from '../src/normalize/index.js';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(resolve(DIR, 'fixtures', 'smoothcomp-v2.html'), 'utf8');
 const NOW = new Date('2026-10-25T12:00:00Z'); // meio-dia UTC: o dia é o mesmo em qualquer fuso do CI
 
-const parsed = smoothcompAdapter.parse(html);
+const parsed = smoothcompAdapter.parse(html, NOW);
 const byId = (id: number) => parsed.find((e) => e.sourceId === `smoothcomp:${id}`)!;
 
 describe('smoothcomp v2 — filtro por modalidade', () => {
@@ -20,7 +20,7 @@ describe('smoothcomp v2 — filtro por modalidade', () => {
     expect(ids).not.toContain('smoothcomp:32717'); // judô (26)
     expect(ids).not.toContain('smoothcomp:34981'); // MMA (19)
     expect(ids).not.toContain('smoothcomp:29225'); // MMA (19)
-    expect(parsed).toHaveLength(18);
+    expect(parsed).toHaveLength(19);
     expect(new Set(parsed.map((e) => e.sport))).toEqual(new Set(['bjj', 'grappling']));
   });
 
@@ -31,6 +31,31 @@ describe('smoothcomp v2 — filtro por modalidade', () => {
     expect(sportOf(['19', '37'])).toBe('mma');
     expect(sportOf(['9'])).toBe('other');
     expect(sportOf(undefined)).toBe('other');
+  });
+});
+
+describe('smoothcomp v2 — ruído da plataforma', () => {
+  it('o evento de teste do Smoothcomp (Antártida) não entra', () => {
+    expect(parsed.map((e) => e.sourceId)).not.toContain('smoothcomp:26870');
+  });
+
+  it('faixa de mais de 31 dias que já começou não entra; uma que ainda não começou fica', () => {
+    const ids = parsed.map((e) => e.sourceId);
+    expect(ids).not.toContain('smoothcomp:28492'); // nacional de 2025, aberto até 2026-12-06
+    expect(ids).not.toContain('smoothcomp:35257'); // formação de staff, 2026-09-24 → 2027-09-30
+    expect(ids).toContain('smoothcomp:90001'); // temporada 2026-11-07 → 2027-03-27, começa depois de NOW
+  });
+
+  it('isPlatformNoise: título de teste, país AQ, e a borda de 31 dias', () => {
+    const ev = (startdate: string, enddate: string, extra: object = {}) => ({ title: 'Open', startdate, enddate, location_country: 'BR', ...extra });
+    expect(isPlatformNoise(ev('2026-12-01', '2026-12-01', { title: 'Production TEST EVENT 2026' }), NOW)).toBe(true);
+    expect(isPlatformNoise(ev('2026-12-01', '2026-12-01', { location_country: 'AQ' }), NOW)).toBe(true);
+    expect(isPlatformNoise(ev('2026-12-01', '2026-12-01', { title: 'Contest Event Open' }), NOW)).toBe(false); // borda de palavra
+    expect(isPlatformNoise(ev('2026-10-01', '2026-11-01'), NOW)).toBe(false); // 31 dias: ainda é evento
+    expect(isPlatformNoise(ev('2026-10-01', '2026-11-02'), NOW)).toBe(true); // 32 dias, já começou
+    expect(isPlatformNoise(ev('2026-10-25', '2027-10-25'), NOW)).toBe(false); // começa hoje: não é passado
+    expect(isPlatformNoise(ev('2026-10-24', '2026-10-26'), NOW)).toBe(false); // em andamento, curto
+    expect(isPlatformNoise(ev('2026-10-01', '2026-09-01'), NOW)).toBe(false); // fim antes do início: a normalização trata
   });
 });
 

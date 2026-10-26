@@ -87,6 +87,9 @@ export interface SourceAdapter {
   priority: number;
   /** Coleta o payload bruto. Pode lançar — o orquestrador isola falhas por fonte. */
   fetchRaw(): Promise<unknown>;
-  /** Transforma o bruto em eventos parciais. Não normaliza datas nem deduplica. */
-  parse(raw: unknown): RawEvent[];
+  /**
+   * Transforma o bruto em eventos parciais. Não normaliza datas nem deduplica.
+   * `now` (default: agora) só serve a filtros de ruído que dependem do dia da coleta.
+   */
+  parse(raw: unknown, now?: Date): RawEvent[];
 }

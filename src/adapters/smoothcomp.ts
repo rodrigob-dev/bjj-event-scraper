@@ -8,6 +8,7 @@ import { httpGet } from '../http.js';
 import type { SourceAdapter, RawEvent, Sport } from '../types.js';
 import { parsePlace, ufOfBrazilianCity } from '../normalize/places.js';
 import { kidsFromTitle } from '../normalize/classify.js';
+import { toISODate } from '../normalize/dates.js';
 
 const UPCOMING_URL = 'https://smoothcomp.com/en/events/upcoming';
 
@@ -35,6 +36,31 @@ export const EMITTED_SPORTS: ReadonlySet<Sport> = new Set<Sport>(['bjj', 'grappl
 const GI_GROUPS = new Set(['1']);
 const NOGI_GROUPS = new Set(['7', '3', '4', '24']);
 
+// Ruído da plataforma, que o filtro de "não passou" da normalização deixa entrar:
+// o evento de teste do próprio Smoothcomp ("Smoothcomp Test Event", na Antártida,
+// cidade "That cold place") e faixas de meses que seguem abertas depois de começar
+// (um nacional de 2025 até 2026-12, uma formação de staff de um ano). Um evento de
+// verdade de várias semanas que ainda não começou fica: dá para se inscrever nele.
+const TEST_EVENT = /\btest event\b/i;
+const MAX_SPAN_DAYS = 31;
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const DAY_MS = 86_400_000;
+
+/** Linha que não é um evento: teste da plataforma, Antártida, ou faixa > 31 dias já começada. */
+export function isPlatformNoise(
+  e: Pick<SmoothcompEvent, 'title' | 'startdate' | 'enddate' | 'location_country'>,
+  now: Date = new Date(),
+): boolean {
+  if (typeof e.title === 'string' && TEST_EVENT.test(e.title)) return true;
+  if (countryCodeOf(e.location_country) === 'AQ') return true;
+  const start = e.startdate;
+  const end = e.enddate;
+  if (typeof start !== 'string' || typeof end !== 'string' || !ISO_DAY.test(start) || !ISO_DAY.test(end)) return false;
+  // Dias de calendário em UTC: as duas datas são dias sem hora, então não há fuso a errar.
+  const spanDays = (Date.parse(end) - Date.parse(start)) / DAY_MS;
+  return start < toISODate(now) && spanDays > MAX_SPAN_DAYS;
+}
+
 // Quem organiza (o subdomínio do evento ou uma marca no título) não é decidido
 // aqui: src/normalize/organizador.ts resolve contra a base aprovada
 // data/organizadores.json, igual para todas as fontes.
@@ -45,7 +71,7 @@ interface SmoothcompEvent {
   startdate?: string; // "2026-05-31"
   enddate?: string;
   location_city?: string;
-  location_country?: string; // ISO alpha-2
+  location_country?: string; // ISO alpha-2 (às vezes subdivisão: "GB-SCT")
   location_country_human?: string;
   location_lat?: string | number | null;
   location_long?: string | number | null;
@@ -128,10 +154,11 @@ export const smoothcompAdapter: SourceAdapter = {
   async fetchRaw() {
     return httpGet<string>(UPCOMING_URL, { json: false });
   },
-  parse(raw): RawEvent[] {
+  parse(raw, now = new Date()): RawEvent[] {
     const html = raw as string;
     const events = extractEventsArray(html);
     const out: RawEvent[] = [];
+    const noise: string[] = [];
     for (const e of events) {
       if (e.eventEnded) continue;
       if (typeof e.title !== 'string' || typeof e.startdate !== 'string' || typeof e.url !== 'string') {
@@ -140,6 +167,11 @@ export const smoothcompAdapter: SourceAdapter = {
       const groups = Array.isArray(e.categoryGroups) ? e.categoryGroups.map(String) : [];
       const sport = sportOf(groups);
       if (!EMITTED_SPORTS.has(sport)) continue;
+      // Depois do filtro de modalidade: o log só lista o que entraria no feed.
+      if (isPlatformNoise(e, now)) {
+        noise.push(`${e.id} "${e.title}"`);
+        continue;
+      }
 
       const countryCode = countryCodeOf(e.location_country);
       const place = parsePlace(e.location_city ?? '', countryCode, e.location_country_human);
@@ -178,6 +210,7 @@ export const smoothcompAdapter: SourceAdapter = {
         sport,
       });
     }
+    if (noise.length) console.log(`[smoothcomp] ${noise.length} linha(s) de ruído descartada(s): ${noise.join(', ')}`);
     return out;
   },
 };
