@@ -10,7 +10,7 @@ consumer on v1 keeps working and a producer can roll fields out one source at a 
 | id | string | v1 | `${slug(title)}|${dateISO}` — UNCHANGED (prod enrollments reference it) |
 | sourceId | string | v2 | the source's own stable key: IBJJF/CBJJ `id` from calendar.json (string), Smoothcomp numeric `id` as string. Format `${source}:${nativeId}`, e.g. `smoothcomp:27746`, `ibjjf:3121`. Lets the sync keep ONE DB row across retitles/reschedules. |
 | title | string | v1 | trimmed, as the source writes it |
-| type | enum | v1 | competition · promotion · open_mat · seminar. Classifier must use word boundaries (`\bbelt\b`, `\bgradua`): "Beltrão" is a city. |
+| type | enum | v1 | competition · promotion · open_mat · seminar. Classifier must use word boundaries (`\bbelt\b`, `\bgradua`): "Beltrão" is a city. Nobody competes at a rules/referee/staff course (`course`, `curso`, `formação`, `formation`, `-kurs`, `-utbildning`, `-lehrgang`) or a camp (`camp`, `-läger`, `-leir`, only without a competition word): `seminar`, so the consumer drops it. |
 | date | string | v1 | display pt-BR, kept for v1 readers |
 | dateISO | string | v1 | YYYY-MM-DD, first day |
 | endDateISO | string | v2 | YYYY-MM-DD, last day (IBJJF endDay; Smoothcomp enddate). Equal to dateISO for one-day events. |
