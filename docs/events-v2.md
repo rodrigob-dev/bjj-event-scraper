@@ -33,8 +33,14 @@ consumer on v1 keeps working and a producer can roll fields out one source at a 
 | scrapedAt | string | v1 | ISO datetime |
 
 Dedup: still `slug(title)|dateISO`, priority cbjj = cbjjo = fjjrio = fpjj (3) > ibjjf = ajp = jjwl = nabjjf = sjjif (2) > smoothcomp (1); on a tie the registry order wins (cbjj before fpjj, nabjjf before sjjif).
-The same physical event on IBJJF and Smoothcomp (or AJP and Smoothcomp) with different titles stays two rows
-(accepted; the consumer may later merge by sourceId tables).
+Second pass (`dedupeSameEvent`, after the slug pass, before geocoding): two rows from DIFFERENT sources are one event
+when they share city + countryCode (or are ≤ 15 km apart, by own coordinates or the city table), their day ranges
+overlap or start ≤ 1 day apart, and one title's token set contains the other's after dropping years, federation
+acronyms, championship/campeonato/tournament, open/international, jiu/jitsu/bjj and de/do/da/the/of. Never merged:
+only one title kids (kids/infantil/juvenil/youth/crianças/festival), only one title no-gi (no-gi/nogi/sem kimono),
+a smaller title that is just the city name, or two rows of the same source (a kept row absorbs at most one row per
+source). The kept row is the higher priority (tie: registry order) and fills its missing coordinates, deadline,
+venue and image from the dropped one; the slug pass fills the same way. Each merged pair is logged.
 
 Validation (src/validate.ts): no past rows, no duplicate id, no duplicate sourceId, lat/lng in range, countryCode 2 uppercase letters, every row with lat/lng carries `geo`.
 

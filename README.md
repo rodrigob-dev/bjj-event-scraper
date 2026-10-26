@@ -34,6 +34,10 @@ endpoint JSON interno. Playwright (headless) existe só como *fallback* isolado
 Prioridade em dedup: federações nacionais/estaduais (`cbjj`, `cbjjo`, `fjjrio`, `fpjj` = 3) >
 organizadores dos próprios eventos (`ibjjf`, `ajp`, `jjwl`, `nabjjf`, `sjjif` = 2) > agregador (`smoothcomp` = 1).
 Em empate fica o primeiro do registry (CBJJ antes da FPJJ; NABJJF antes da SJJIF, que lista os eventos dela).
+Duas passadas: chave exata `slug(título)|dateISO`, depois o mesmo evento com outro título em outra fonte
+(`dedupeSameEvent` em `src/normalize/dedup.ts`: mesma cidade ou ≤ 15 km, dias que se cruzam, um título contém o
+outro sem as palavras genéricas; nunca kids × adulto, gi × no-gi, título só com a cidade, nem duas linhas da mesma
+fonte). Quem fica herda de quem sai coordenadas, prazo, ginásio e capa que não tiver. O log lista cada par fundido.
 
 Sondada e deixada de fora (2026-10-25): **BJJ Tour** (4 eventos, inscrição no smoothcomp.com — já
 no feed; página com spam injetado). A NABJJF entrou mesmo com os 4 eventos já no feed (2 pela SJJIF,

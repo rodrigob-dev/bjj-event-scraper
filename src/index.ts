@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import type { ScrapedEvent } from './types.js';
 import { adapters, priorityBySource } from './adapters/registry.js';
 import { normalizeEvents } from './normalize/index.js';
-import { dedupe } from './normalize/dedup.js';
+import { dedupe, dedupeSameEvent } from './normalize/dedup.js';
 import { isPast, daysUntil } from './normalize/dates.js';
 import { closeBrowser } from './browser.js';
 import { hasDatabase, upsertEvents } from './db.js';
@@ -152,7 +152,15 @@ async function main() {
       `(${fetched} páginas buscadas, resto via cache).`,
   );
 
-  const deduped = dedupe(collected, priorityBySource);
+  // 2ª passada: o mesmo evento com outro título em outra fonte ("SÃO PAULO BJJ
+  // PRÓ" na FPJJ × "São Paulo BJJ Pro IBJJF Championship 2026" na CBJJ). Antes da
+  // geocodificação, p/ o vencedor herdar as coordenadas de ginásio do perdedor.
+  const same = dedupeSameEvent(dedupe(collected, priorityBySource), priorityBySource);
+  const deduped = same.events;
+  console.log(`Dedup por evento: ${same.merges.length} par(es) fundido(s).`);
+  for (const { kept, dropped } of same.merges) {
+    console.log(`  ${kept.sourceId ?? kept.id} "${kept.title}" ← ${dropped.sourceId ?? dropped.id} "${dropped.title}"`);
+  }
 
   // Coordenadas p/ quem só tem cidade: tabela → cache commitado → Nominatim
   // (só com GEOCODE=1; a coleta diária não faz requisição nenhuma). Depois do
