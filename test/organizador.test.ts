@@ -206,6 +206,17 @@ describe('resolvedor — ordem host → título → nada', () => {
     expect(idOf(GENERIC, 'ADCC Belgium - Rules Seminar')).toBe('adcc');
   });
 
+  it('título que oferece a marca como prêmio ou destino não a nomeia organizadora', () => {
+    // Linha real de 2026-10-26: um GP da 6162 que dá patrocínio para o European Trials.
+    expect(idOf(GENERIC, '6162 GRAND PRIX: ADCC EUROPEAN TRIALS SPONSORSHIP')).toBeUndefined();
+    expect(idOf(GENERIC, 'Copa X - Patrocínio ADCC')).toBeUndefined();
+    expect(idOf(GENERIC, 'Road to ADCC 2027')).toBeUndefined();
+    // O ADCC que roda o próprio evento continua dele.
+    expect(idOf(GENERIC, 'ADCC European Trials 2027')).toBe('adcc');
+    expect(idOf(GENERIC, 'ADCC Grappling Superfights #7')).toBe('adcc');
+    expect(idOf(GENERIC, 'ADCC Maldives Open 2026')).toBe('adcc');
+  });
+
   it('título sem marca conhecida → null', () => {
     expect(resolveOrganizer({ url: GENERIC, title: 'Copa X' })).toBeNull();
     expect(resolveOrganizer({ url: GENERIC, title: '36 Chambers Invitational III' })).toBeNull();

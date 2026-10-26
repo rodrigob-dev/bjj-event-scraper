@@ -172,13 +172,29 @@ function citesRuleset(text: string, index: number, end: number): boolean {
   return [...before, ...after].some((w) => RULESET_WORD.test(w));
 }
 
+// "6162 GRAND PRIX: ADCC EUROPEAN TRIALS SPONSORSHIP", "Road to ADCC": a marca é o
+// prêmio (um patrocínio para o evento dela) ou o destino, não quem organiza. A palavra
+// do prêmio fecha a frase da marca ("ADCC European Trials Sponsorship"), por isso a
+// janela depois é de três palavras; antes, duas ("Patrocínio ADCC", "Road to ADCC").
+const PRIZE_WORD = /^(?:sponsorships?|sponsor(?:ed)?|patrocinios?|patrocinado|patrocinio)\)?$/;
+
+function citesPrize(text: string, index: number, end: number): boolean {
+  const before = text.slice(0, index).split(/[\s&+/,:|-]+/).filter(Boolean).slice(-2);
+  if (/^(?:road|rumo|camino) (?:to|ao|a|al)$/.test(before.join(' '))) return true;
+  if (before.some((w) => PRIZE_WORD.test(w))) return true;
+  const after = text.slice(end).split(/[\s&+/,:|-]+/).filter(Boolean).slice(0, 3);
+  return after.some((w) => PRIZE_WORD.test(w));
+}
+
 /** Padrão de título: trecho mais longo vence; empate, o que aparece antes; depois a ordem da base. */
 export function byTitle(title: string, base: OrganizerBase = organizerBase()): OrganizerEntry | undefined {
   const text = fold(title);
   let best: { entry: OrganizerEntry; len: number; index: number; order: number } | undefined;
   for (const p of base.patterns) {
     const m = p.re.exec(text);
-    if (!m || citesRuleset(text, m.index, m.index + m[0].length)) continue;
+    if (!m) continue;
+    const end = m.index + m[0].length;
+    if (citesRuleset(text, m.index, end) || citesPrize(text, m.index, end)) continue;
     const cand = { entry: p.entry, len: m[0].length, index: m.index, order: p.order };
     if (
       !best ||
