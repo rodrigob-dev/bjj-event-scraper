@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { KEBAB_ID } from './normalize/organizador.js';
 
 export const eventTypeSchema = z.enum(['competition', 'promotion', 'open_mat', 'seminar']);
 export const sportSchema = z.enum(['bjj', 'grappling', 'judo', 'wrestling', 'mma', 'other']);
@@ -46,6 +47,9 @@ export const scrapedEventSchema = z
     nogi: z.boolean().optional(),
     kids: z.boolean().optional(),
     organizer: z.string().min(1).optional(),
+    // id da entrada em data/organizadores.json; que ele exista e que organizer seja
+    // o nome dela é checado no validate (precisa da base).
+    organizerId: z.string().regex(KEBAB_ID, 'organizerId deve ser kebab-case').optional(),
     sport: sportSchema.optional(),
     registrationDeadlineISO: isoDay.optional(),
     geo: geoSourceSchema.optional(),
@@ -65,6 +69,10 @@ export const scrapedEventSchema = z
   .refine((e) => !e.geo || e.lat !== undefined, {
     message: 'geo diz de onde vieram lat/lng: sem coordenadas não há geo',
     path: ['geo'],
+  })
+  .refine((e) => (e.organizer === undefined) === (e.organizerId === undefined), {
+    message: 'organizer e organizerId vêm juntos (só entradas da base de organizadores)',
+    path: ['organizerId'],
   })
   .refine((e) => !e.registrationDeadlineISO || e.registrationDeadlineISO < e.dateISO, {
     message: 'registrationDeadlineISO deve ser anterior ao evento (nunca a data dele)',

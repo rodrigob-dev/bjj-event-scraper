@@ -1,5 +1,5 @@
 // Valida data/events.json: schema zod + invariantes (sem datas passadas,
-// sem duplicatas de id nem de sourceId). Exit code != 0 falha o CI antes de
+// sem duplicatas de id nem de sourceId, organizer só da base aprovada). Exit code != 0 falha o CI antes de
 // publicar. Imprime também a cobertura dos campos v2 por fonte.
 
 import { readFile } from 'node:fs/promises';
@@ -7,12 +7,17 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { outputSchema, type ScrapedEventParsed } from './schema.js';
 import { isPast } from './normalize/dates.js';
+import { organizerBase, type OrganizerBase } from './normalize/organizador.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = resolve(ROOT, 'data/events.json');
 
 /** Invariantes além do schema. Exportado p/ teste. */
-export function findInvariantErrors(events: ScrapedEventParsed[], now: Date = new Date()): string[] {
+export function findInvariantErrors(
+  events: ScrapedEventParsed[],
+  now: Date = new Date(),
+  base: OrganizerBase = organizerBase(),
+): string[] {
   const errors: string[] = [];
 
   // Um evento em andamento (começou, ainda não terminou) continua futuro.
@@ -37,6 +42,19 @@ export function findInvariantErrors(events: ScrapedEventParsed[], now: Date = ne
   const unmarked = events.filter((e) => e.lat !== undefined && !e.geo);
   if (unmarked.length) errors.push(`${unmarked.length} evento(s) com lat/lng sem geo: ${unmarked.slice(0, 5).map((e) => e.id).join(', ')}`);
 
+  // Só a base de organizadores nomeia quem organiza: id conhecido e nome igual ao dela.
+  const badOrg = events.filter((e) => {
+    if (e.organizerId === undefined) return false;
+    const entry = base.byId.get(e.organizerId);
+    return !entry || entry.nome !== e.organizer;
+  });
+  if (badOrg.length) {
+    errors.push(
+      `${badOrg.length} evento(s) com organizer fora de data/organizadores.json: ` +
+        badOrg.slice(0, 5).map((e) => `${e.id} (${e.organizerId}="${e.organizer}")`).join(', '),
+    );
+  }
+
   return errors;
 }
 
@@ -50,7 +68,8 @@ export function coverageSummary(events: ScrapedEventParsed[]): string {
       `  ${s}: ${rows.length} eventos · país ${n((e) => !!e.countryCode)} · cidade ${n((e) => !!e.city)} · ` +
       `estado ${n((e) => !!e.state)} · lat/lng ${n((e) => e.lat !== undefined)} ` +
       `(tabela ${n((e) => e.geo === 'table')}, nominatim ${n((e) => e.geo === 'nominatim')}) · fim ${n((e) => !!e.endDateISO)} · ` +
-      `prazo ${n((e) => !!e.registrationDeadlineISO)} · nogi ${n((e) => e.nogi === true)} · kids ${n((e) => e.kids === true)}`
+      `prazo ${n((e) => !!e.registrationDeadlineISO)} · nogi ${n((e) => e.nogi === true)} · kids ${n((e) => e.kids === true)} · ` +
+      `organizador ${n((e) => !!e.organizerId)}`
     );
   });
   return lines.join('\n');

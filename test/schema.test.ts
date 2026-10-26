@@ -25,7 +25,7 @@ describe('schema v2', () => {
     const full = {
       ...base, sourceId: 'ibjjf:3121', endDateISO: '2026-06-06', venue: 'Arena', city: 'Rio de Janeiro',
       state: 'RJ', countryCode: 'BR', lat: -22.9, lng: -43.2, gi: true, nogi: false, kids: false,
-      organizer: 'IBJJF', sport: 'bjj', registrationDeadlineISO: '2026-05-30',
+      organizer: 'IBJJF', organizerId: 'ibjjf', sport: 'bjj', registrationDeadlineISO: '2026-05-30',
     };
     expect(scrapedEventSchema.safeParse(full).success).toBe(true);
   });
@@ -51,6 +51,12 @@ describe('schema v2', () => {
     expect(scrapedEventSchema.safeParse({ ...base, geo: 'nominatim' }).success).toBe(false);
     expect(scrapedEventSchema.safeParse({ ...base, lat: -22.9, lng: -43.2, geo: 'google' }).success).toBe(false);
   });
+  it('organizer e organizerId vêm juntos; organizerId é kebab', () => {
+    expect(scrapedEventSchema.safeParse({ ...base, organizer: 'IBJJF' }).success).toBe(false);
+    expect(scrapedEventSchema.safeParse({ ...base, organizerId: 'ibjjf' }).success).toBe(false);
+    expect(scrapedEventSchema.safeParse({ ...base, organizer: 'IBJJF', organizerId: 'IBJJF' }).success).toBe(false);
+    expect(scrapedEventSchema.safeParse({ ...base, organizer: 'Grappling Industries', organizerId: 'grappling-industries' }).success).toBe(true);
+  });
   it('rejeita sourceId sem o prefixo da fonte e sport fora do enum', () => {
     expect(scrapedEventSchema.safeParse({ ...base, sourceId: '3121' }).success).toBe(false);
     expect(scrapedEventSchema.safeParse({ ...base, sport: 'karate' }).success).toBe(false);
@@ -63,6 +69,14 @@ describe('invariantes do validate', () => {
     expect(findInvariantErrors(a, NOW).join()).toMatch(/sourceId/);
     const b = outputSchema.parse([base, base]);
     expect(findInvariantErrors(b, NOW).join()).toMatch(/id\(s\)/);
+  });
+  it('organizer só da base: id desconhecido ou nome diferente do da base falham', () => {
+    const ok = outputSchema.parse([{ ...base, organizer: 'NAGA', organizerId: 'naga' }]);
+    expect(findInvariantErrors(ok, NOW)).toEqual([]);
+    const unknown = outputSchema.parse([{ ...base, organizer: 'ufcbjj', organizerId: 'ufcbjj' }]);
+    expect(findInvariantErrors(unknown, NOW).join()).toMatch(/organizadores\.json/);
+    const renamed = outputSchema.parse([{ ...base, organizer: 'Naga', organizerId: 'naga' }]);
+    expect(findInvariantErrors(renamed, NOW).join()).toMatch(/naga="Naga"/);
   });
   it('evento em andamento não é passado (usa endDateISO)', () => {
     const ev = outputSchema.parse([{ ...base, dateISO: '2026-04-30', endDateISO: '2026-05-02' }]);
