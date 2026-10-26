@@ -71,6 +71,9 @@ describe('data/organizadores.json — invariantes da base', () => {
       expect(base.byId.get(id)?.tipo, id).toBe('federacao');
     }
     expect(base.byHost.has('smoothcomp')).toBe(false);
+    // Federações com conta no Smoothcomp e linhas no feed de 2026-10-26.
+    const contas = ['francejujitsu', 'sajjfederation', 'fbjjf', 'isrjjf', 'federacion-paraguaya-de-jiu-jitsu', 'ajju', 'jjkaz', 'fjj-sc', 'manitobajiujitsu', 'hfbjj', 'usag', 'sjjfnz'];
+    for (const h of contas) expect(base.byHost.get(h)?.tipo, h).toBe('federacao');
     expect(raw.some((e) => /smoothcomp/i.test(e.nome))).toBe(false); // plataforma, não organizador
   });
 
@@ -134,6 +137,18 @@ describe('resolvedor — ordem host → título → nada', () => {
     });
   });
 
+  it('marca com tituloVenceHost citada no título vence o host da federação', () => {
+    // A Ontario lista o GI de Toronto porque sanciona; quem roda é o Grappling Industries.
+    expect(resolveOrganizer({ url: 'https://ontario-jiu-jitsu.smoothcomp.com/en/event/34318', title: 'Grappling Industries TORONTO' })).toMatchObject({
+      via: 'title', entry: { id: 'grappling-industries' },
+    });
+    // Sem a flag o host continua valendo: os ADCC Opens são das próprias federações.
+    expect(idOf('https://sswf.smoothcomp.com/en/event/33586', 'ADCC Sweden 13')).toBe('sswf');
+    expect(idOf('https://sjjfnz.smoothcomp.com/en/event/27673', 'ADCC OPEN > Auckland')).toBe('sjjfnz');
+    // Na própria conta da marca, o host.
+    expect(resolveOrganizer({ url: 'https://grapplingindustries.smoothcomp.com/en/event/1', title: 'Grappling Industries AMSTERDAM' })?.via).toBe('host');
+  });
+
   it('tituloVenceHost: a marca vence o host só quando é o melhor casamento do título', () => {
     const flagged = buildOrganizerBase([
       { ...entry('fed', [], ['fed']), tipo: 'federacao' },
@@ -145,6 +160,12 @@ describe('resolvedor — ordem host → título → nada', () => {
     expect(id('Outra Marca Longa Cup')).toBe('fed'); // o título nomeia a outra marca, sem a flag: fica o host
     expect(id('Open (Marca rules)')).toBe('fed');
     expect(id('Copa da Federação')).toBe('fed');
+  });
+
+  it('evento de clube na conta de uma federação fica com a federação (quem sanciona)', () => {
+    expect(idOf('https://sbjjf.smoothcomp.com/en/event/35217', 'Battle of Stockholm #25')).toBe('sbjjf');
+    expect(idOf('https://bjjfnl.smoothcomp.com/en/event/32254', 'VERSUS Championship 37 - Adults Gi only')).toBe('bjjf-nl');
+    expect(idOf('https://usag.smoothcomp.com/en/event/35463', 'Lake Arrowhead Jiu Jitsu Open | Winter 2026')).toBe('usa-grappling');
   });
 
   it('host genérico (smoothcomp.com, www) vai direto ao título', () => {
