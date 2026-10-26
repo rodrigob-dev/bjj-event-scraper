@@ -27,7 +27,7 @@ consumer on v1 keeps working and a producer can roll fields out one source at a 
 | organizerId | string? | v2 | the `id` (kebab) of the same base entry (`naga`, `grappling-industries`). Present exactly when `organizer` is. |
 | sport | enum? | v2 | `bjj` · `grappling` · `judo` · `wrestling` · `mma` · `other`. Smoothcomp from categoryGroups (1/2/7/23/24 bjj, 3/4 grappling, 26 judo, 32/51 wrestling, 19/37/10 mma, else other); IBJJF/CBJJ `bjj`. Producer emits ONLY bjj + grappling rows into events.json (the app is a jiu-jitsu app); the mapping lives in code so widening is one line. |
 | registrationDeadlineISO | string? | v2 | YYYY-MM-DD when the source states it (IBJJF detail page the enrich step already downloads; JJWL "Application deadline"; NABJJF "Closes Jan 13" on the price ladder (no year: the event's, or the one before for a December→January wrap); FJJRIO "Término da Inscrição"; CBJJO "Inscrições ATÉ" — dropped when the portal closes after the event starts). Absent otherwise — NEVER the event date. Smoothcomp/AJP/SJJIF do not expose it without JS. |
-| source | string | v1 | `ibjjf` · `cbjj` · `smoothcomp` · `ajp` · `sjjif` · `jjwl` · `fjjrio` · `cbjjo` · `fpjj` · `nabjjf` (new adapters add their own). sourceId native keys: AJP/SJJIF/CBJJO numeric ids, JJWL and NABJJF the event slug, FJJRIO the opaque id as base64url without padding, FPJJ `<year>-<id>` (ids restart per yearly calendar). |
+| source | string | v1 | where the row was scraped, never who runs it (`organizer` says that; `smoothcomp` is the registration platform, not a federation): `ibjjf` · `cbjj` · `smoothcomp` · `ajp` · `sjjif` · `jjwl` · `fjjrio` · `cbjjo` · `fpjj` · `nabjjf` (new adapters add their own). sourceId native keys: AJP/SJJIF/CBJJO numeric ids, JJWL and NABJJF the event slug, FJJRIO the opaque id as base64url without padding, FPJJ `<year>-<id>` (ids restart per yearly calendar). |
 | sourceUrl | string | v1 | http(s) only |
 | imageUrl | string? | v1 | http(s) only |
 | accentColor | string? | v1 | #RRGGBB |
@@ -59,21 +59,38 @@ A curated list of the organizations the feed may name, versioned in this repo. O
 | hosts | the Smoothcomp subdomains it publishes under (`naga` for `naga.smoothcomp.com`); a host has one owner |
 | padroes | title patterns (JavaScript regex source, ≥ 3 chars), matched against the title without accents or case and with Unicode word boundaries added around them (`NAGA` does not match `Nagano`). Leave empty when the name is generic or cited as a ruleset (IBJJF has none: Smoothcomp titles say "IBJJF rules") |
 | cor | optional `#RRGGBB` brand colour |
+| tituloVenceHost | optional `true`: a brand that always runs its own events. When it is the title's best match it beats the Smoothcomp host (`Grappling Industries TORONTO` on the Ontario Jiu-Jitsu account → Grappling Industries). Opt-in per entry, because "a brand in the title beats a federation host" as a general rule would also flip the ADCC Opens that BJJFP and SSWF really run. Set on: `grappling-industries` |
 
 Resolver (`src/normalize/organizador.ts`, applied to every source during normalization and again to rows preserved from
 the previous run):
 
-1. What the source itself says. A Smoothcomp event: its subdomain, looked up in `hosts`. A federation calendar (IBJJF,
-   CBJJ, AJP, SJJIF…): the organizer the adapter declares, looked up by `id` or `nome`; `CBJJ/FPJJ` takes the first part
-   that is in the base.
+1. What the source itself says. A Smoothcomp event: its subdomain, looked up in `hosts`, unless the title's best match
+   (step 2) is an entry flagged `tituloVenceHost`, which then wins. A federation calendar (IBJJF, CBJJ, AJP, SJJIF…): the
+   organizer the adapter declares, looked up by `id` or `nome`; `CBJJ/FPJJ` takes the first part that is in the base.
 2. Title patterns: the longest matched text wins, then the earliest in the title, then base order. A match next to a
    ruleset word (`rules`, `reglas`, `regras`, `règlement`… within two words) does not count: "Reglas IBJJF&ADCC" names
    the rules, not the organizer.
 3. Nothing: both fields absent. A federation name an adapter declares that is not in the base is logged as a
    `::notice::` so it can be added.
 
+Federation = the sanctioning body. Smoothcomp calls every organizer account a "federation" (`/en/federation/<n>/events`),
+and a real federation's account lists the events it runs and the ones it only sanctions (bjjsweden.se files the club
+events under "Sanktionerade tävlingar"; USA Grappling says it "sanctions competitions across the country"). The feed
+does not split the two: a club event on a `federacao` entry's host (`Battle of Stockholm #25` on `sbjjf`, `VERSUS
+Championship 37` on `bjjfnl`) gets the federation as `organizer`, which is what a member filtering by their federation
+wants: the event runs under its sanction. A brand that runs its own events under a federation's sanction is the
+`tituloVenceHost` case above. A separate `sanctionedBy` field was not added: no consumer reads one yet, and it would mean
+a web and an app change for the same chip.
+
+Smoothcomp platform noise is dropped in the adapter (`isPlatformNoise` in `src/adapters/smoothcomp.ts`), after the sport
+filter: Smoothcomp's own test event (title `\btest event\b`, or `location_country` `AQ`: "Smoothcomp Test Event" sits
+in Antarctica, city "That cold place"), and a row that started before today and spans more than 31 days (a 2025 national
+left open until 2026-12, a year-long staff course), which the no-past rule would otherwise keep. A long event that has not
+started yet stays. The run logs each dropped row.
+
 Adding an entry: confirm the organization runs recurring events (a gym's in-house tournament is not an entry), find the
-site, add the object with its Smoothcomp `hosts` and any distinctive `padroes`, run `npx vitest run --config
+site, add the object with its Smoothcomp `hosts` and any distinctive `padroes` (a federation whose account is its only
+signal gets `padroes: []`; its display name is the one its Smoothcomp home shows), run `npx vitest run --config
 ./vitest.config.ts` (the base's invariants are tested: unique ids and hosts, https sites, valid patterns) and
 `npm run scrape && npm run validate`.
 

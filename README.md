@@ -22,7 +22,7 @@ endpoint JSON interno. Playwright (headless) existe só como *fallback* isolado
 |-------|-----------|------------------------|
 | IBJJF | `http` | `GET /api/v1/events/calendar.json` (headers de XHR) → `infosite_events[]` |
 | CBJJ | `http` | mesma API do IBJJF em `cbjj.com.br` (CMS compartilhado) |
-| Smoothcomp | `http` | array `var events = [...]` embutido no HTML de `/en/events/upcoming`; mundo inteiro, só eventos cujas categorias mapeiam para `bjj`/`grappling` (tabela em `src/adapters/smoothcomp.ts`) |
+| Smoothcomp | `http` | array `var events = [...]` embutido no HTML de `/en/events/upcoming`; mundo inteiro, só eventos cujas categorias mapeiam para `bjj`/`grappling` (tabela em `src/adapters/smoothcomp.ts`); fora o evento de teste da plataforma (Antártida) e faixas de mais de 31 dias que já começaram |
 | AJP (UAEJJF) | `http` | `ajptour.com/en/events/upcoming` é um Smoothcomp em marca própria: mesmo `var events` (data/país ISO, coordenadas); modalidade pelo título. robots pede `Crawl-delay: 10`, respeitado |
 | SJJIF | `http` | home `sjjif.com/` renderiza "Upcoming Events" (SJJIF) + "Sanctioned Events" (SJJCF, ASJJF, SJJJF…): título, data por extenso, local, país por extenso. `/calendar/upcomingEvents` é só JS |
 | JJWL | `http` | menu TOURNAMENTS de `/jjwl/tournaments` lista `/events/<slug>` (um por GI/NoGI × Youth/Adults); cada página traz "Event Day", "Event Address", "Application deadline" — ~32 páginas por coleta |
@@ -99,15 +99,17 @@ está em `docs/events-v2.md`.
 circuitos e marcas de torneio). Cada entrada: `id` (kebab, vira `organizerId`), `nome` (vira
 `organizer`), `tipo` (`federacao` · `liga` · `circuito` · `organizador`), `site` (https que prova que
 existe: o site oficial, senão a casa dela no Smoothcomp), `hosts` (subdomínios do Smoothcomp),
-`padroes` (regex de título, ≥ 3 caracteres, sem acento/caixa, com borda de palavra) e `cor` opcional.
+`padroes` (regex de título, ≥ 3 caracteres, sem acento/caixa, com borda de palavra), `cor` opcional e
+`tituloVenceHost` opcional (marca que sempre roda o próprio evento: citada no título, vence o subdomínio).
 
 O resolvedor (`src/normalize/organizador.ts`) roda em toda fonte: primeiro o que a fonte afirma
-(subdomínio do evento no Smoothcomp; organizador declarado pelo adapter nos calendários de
-federação, `CBJJ/FPJJ` → o primeiro da base), depois os padrões de título (o trecho mais longo
-vence; casamento colado a "rules"/"reglas"/"regras" não conta), senão nada. Para incluir uma
-organização: confirme que ela roda eventos recorrentes (torneio interno de academia não entra),
-ache o site, adicione a entrada e rode os testes + `npm run scrape && npm run validate`. Detalhes em
-`docs/events-v2.md`.
+(subdomínio do evento no Smoothcomp, salvo marca com `tituloVenceHost` no título; organizador
+declarado pelo adapter nos calendários de federação, `CBJJ/FPJJ` → o primeiro da base), depois os
+padrões de título (o trecho mais longo vence; casamento colado a "rules"/"reglas"/"regras" não
+conta), senão nada. Evento de clube na conta de uma federação fica com a federação, que o
+sanciona. Para incluir uma organização: confirme que ela roda eventos recorrentes (torneio
+interno de academia não entra), ache o site, adicione a entrada e rode os testes +
+`npm run scrape && npm run validate`. Detalhes em `docs/events-v2.md`.
 
 ### Geocodificação
 

@@ -1,7 +1,7 @@
 {
   "name": "bjj-event-scraper",
   "version": "1.0.0",
-  "description": "Scraper de calendários de federações de jiu-jitsu (IBJJF, CBJJ, Smoothcomp) → events.json para o app BJJ Avatar",
+  "description": "Scraper de competições de jiu-jitsu (calendários de federações como IBJJF e CBJJ, e a plataforma de inscrição Smoothcomp) → events.json para o app BJJ Avatar",
   "type": "module",
   "private": true,
   "scripts": {
