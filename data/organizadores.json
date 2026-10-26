@@ -5,7 +5,7 @@
   { "id": "fjjrio", "nome": "FJJRIO", "tipo": "federacao", "site": "https://fjjrio.com.br", "hosts": [], "padroes": ["FJJRIO"] },
   { "id": "fpjj", "nome": "FPJJ", "tipo": "federacao", "site": "https://fpjj.com.br", "hosts": [], "padroes": [] },
   { "id": "ajp", "nome": "AJP", "tipo": "federacao", "site": "https://ajptour.com", "hosts": [], "padroes": ["AJP", "UAEJJF", "Abu Dhabi Jiu[- ]?Jitsu Pro"] },
-  { "id": "jjwl", "nome": "JJWL", "tipo": "federacao", "site": "https://www.jjworldleague.com", "hosts": ["jjwl"], "padroes": ["JJWL", "Jiu[- ]?Jitsu World League"] },
+  { "id": "jjwl", "nome": "JJWL", "tipo": "liga", "site": "https://www.jjworldleague.com", "hosts": ["jjwl"], "padroes": ["JJWL", "Jiu[- ]?Jitsu World League"] },
   { "id": "sjjif", "nome": "SJJIF", "tipo": "federacao", "site": "https://sjjif.com", "hosts": ["sjjif"], "padroes": ["SJJIF"] },
   { "id": "nabjjf", "nome": "NABJJF", "tipo": "federacao", "site": "https://nabjjf.com", "hosts": ["nabjjf"], "padroes": ["NABJJF"] },
   { "id": "sjjcf", "nome": "SJJCF", "tipo": "federacao", "site": "https://subsites.chinadaily.com.cn/kunming/2024-09/20/c_1027171.htm", "hosts": [], "padroes": ["SJJCF"] },

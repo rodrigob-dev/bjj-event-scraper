@@ -67,9 +67,11 @@ describe('data/organizadores.json — invariantes da base', () => {
   });
 
   it('as federações oficiais estão na base como federação', () => {
-    for (const id of ['ibjjf', 'cbjj', 'cbjjo', 'fjjrio', 'ajp', 'jjwl', 'sjjif', 'nabjjf', 'fpjj']) {
+    for (const id of ['ibjjf', 'cbjj', 'cbjjo', 'fjjrio', 'ajp', 'sjjif', 'nabjjf', 'fpjj']) {
       expect(base.byId.get(id)?.tipo, id).toBe('federacao');
     }
+    // Jiu-Jitsu World League: uma liga (temporada + The Finals), não um órgão que sanciona.
+    expect(base.byId.get('jjwl')?.tipo).toBe('liga');
     expect(base.byHost.has('smoothcomp')).toBe(false);
     // Federações com conta no Smoothcomp e linhas no feed de 2026-10-26.
     const contas = ['francejujitsu', 'sajjfederation', 'fbjjf', 'isrjjf', 'federacion-paraguaya-de-jiu-jitsu', 'ajju', 'jjkaz', 'fjj-sc', 'manitobajiujitsu', 'hfbjj', 'usag', 'sjjfnz'];
