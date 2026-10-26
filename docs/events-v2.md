@@ -23,7 +23,8 @@ consumer on v1 keeps working and a producer can roll fields out one source at a 
 | geo | enum? | v2 | where lat/lng came from: `source` (the feed's own coordinates, venue-level), `table` (city centre from the producer's table), `nominatim` (city centre from OpenStreetMap, cached). Present on every row that has lat/lng; never without them. A consumer may prefer its own venue lookup over a `table`/`nominatim` city centre. |
 | gi, nogi | boolean? | v2 | IBJJF eventGroups 'No-Gi' → nogi=true gi=false, else gi=true nogi=false; Smoothcomp categoryGroups: '1' gi, '7'/'3'/'4' nogi (can be both). Absent = unknown (consumer keeps its defaults). |
 | kids | boolean? | v2 | IBJJF eventGroups 'Kids' or title matches `\bkids?\b|juvenil|infantil|youth`; Smoothcomp same title rule. |
-| organizer | string? | v2 | who runs it, for the chip: `IBJJF`, `CBJJ`, `CBJJO`, `FJJRIO`, `FPJJ` (or `CBJJ/FPJJ` as the calendar writes it), `AJP`, `JJWL`, `NABJJF`, `SJJIF` (or the federation signing a sanctioned SJJIF title: `SJJCF`, `ASJJF`, `SJJJF`…), or the Smoothcomp host (`ligabjj.smoothcomp.com` → `LigaBJJ`; title-based for naga/grappling industries/fuji/adcc/newbreed/good fight when the subdomain is generic). |
+| organizer | string? | v2 | who runs it, for the wordmark, card mark, detail chip and Federation filter: the `nome` of an entry of the approved base `data/organizadores.json` (`IBJJF`, `CBJJ`, `NAGA`, `Grappling Industries`, `Compnet`…). Never `Smoothcomp` (the registration platform, not a federation), never a raw Smoothcomp subdomain, never free title text. Absent when the row matches no entry: the app shows no wordmark and files it under "Other". Resolution below. |
+| organizerId | string? | v2 | the `id` (kebab) of the same base entry (`naga`, `grappling-industries`). Present exactly when `organizer` is. |
 | sport | enum? | v2 | `bjj` · `grappling` · `judo` · `wrestling` · `mma` · `other`. Smoothcomp from categoryGroups (1/2/7/23/24 bjj, 3/4 grappling, 26 judo, 32/51 wrestling, 19/37/10 mma, else other); IBJJF/CBJJ `bjj`. Producer emits ONLY bjj + grappling rows into events.json (the app is a jiu-jitsu app); the mapping lives in code so widening is one line. |
 | registrationDeadlineISO | string? | v2 | YYYY-MM-DD when the source states it (IBJJF detail page the enrich step already downloads; JJWL "Application deadline"; NABJJF "Closes Jan 13" on the price ladder (no year: the event's, or the one before for a December→January wrap); FJJRIO "Término da Inscrição"; CBJJO "Inscrições ATÉ" — dropped when the portal closes after the event starts). Absent otherwise — NEVER the event date. Smoothcomp/AJP/SJJIF do not expose it without JS. |
 | source | string | v1 | `ibjjf` · `cbjj` · `smoothcomp` · `ajp` · `sjjif` · `jjwl` · `fjjrio` · `cbjjo` · `fpjj` · `nabjjf` (new adapters add their own). sourceId native keys: AJP/SJJIF/CBJJO numeric ids, JJWL and NABJJF the event slug, FJJRIO the opaque id as base64url without padding, FPJJ `<year>-<id>` (ids restart per yearly calendar). |
@@ -42,7 +43,39 @@ a smaller title that is just the city name, or two rows of the same source (a ke
 source). The kept row is the higher priority (tie: registry order) and fills its missing coordinates, deadline,
 venue and image from the dropped one; the slug pass fills the same way. Each merged pair is logged.
 
-Validation (src/validate.ts): no past rows, no duplicate id, no duplicate sourceId, lat/lng in range, countryCode 2 uppercase letters, every row with lat/lng carries `geo`.
+Validation (src/validate.ts): no past rows, no duplicate id, no duplicate sourceId, lat/lng in range, countryCode 2 uppercase letters, every row with lat/lng carries `geo`, `organizer` and `organizerId` together, every `organizerId` an entry of `data/organizadores.json` and `organizer` equal to that entry's `nome`.
+
+## Organizer base (data/organizadores.json)
+
+A curated list of the organizations the feed may name, versioned in this repo. Only an entry here can become a row's
+`organizer`, so a new brand shows up in the app by adding it here, not by touching an adapter.
+
+| field | rule |
+|---|---|
+| id | kebab-case, unique; becomes `organizerId` |
+| nome | display name, unique; becomes `organizer` (keep the brand's own short form: `NAGA`, `FUJI BJJ`, `Compnet`) |
+| tipo | `federacao` (governing body: IBJJF, CBJJ, national federations) · `liga` · `circuito` (tour/series) · `organizador` (promotion or brand) |
+| site | https URL proving the organization exists and runs events: its official site, else its own Smoothcomp home (`https://<host>.smoothcomp.com`), else one of its event pages |
+| hosts | the Smoothcomp subdomains it publishes under (`naga` for `naga.smoothcomp.com`); a host has one owner |
+| padroes | title patterns (JavaScript regex source, ≥ 3 chars), matched against the title without accents or case and with Unicode word boundaries added around them (`NAGA` does not match `Nagano`). Leave empty when the name is generic or cited as a ruleset (IBJJF has none: Smoothcomp titles say "IBJJF rules") |
+| cor | optional `#RRGGBB` brand colour |
+
+Resolver (`src/normalize/organizador.ts`, applied to every source during normalization and again to rows preserved from
+the previous run):
+
+1. What the source itself says. A Smoothcomp event: its subdomain, looked up in `hosts`. A federation calendar (IBJJF,
+   CBJJ, AJP, SJJIF…): the organizer the adapter declares, looked up by `id` or `nome`; `CBJJ/FPJJ` takes the first part
+   that is in the base.
+2. Title patterns: the longest matched text wins, then the earliest in the title, then base order. A match next to a
+   ruleset word (`rules`, `reglas`, `regras`, `règlement`… within two words) does not count: "Reglas IBJJF&ADCC" names
+   the rules, not the organizer.
+3. Nothing: both fields absent. A federation name an adapter declares that is not in the base is logged as a
+   `::notice::` so it can be added.
+
+Adding an entry: confirm the organization runs recurring events (a gym's in-house tournament is not an entry), find the
+site, add the object with its Smoothcomp `hosts` and any distinctive `padroes`, run `npx vitest run --config
+./vitest.config.ts` (the base's invariants are tested: unique ids and hosts, https sites, valid patterns) and
+`npm run scrape && npm run validate`.
 
 ## Consumer rules (sensei-web lib/bjj/syncCompetitions.ts)
 
@@ -50,7 +83,7 @@ Validation (src/validate.ts): no past rows, no duplicate id, no duplicate source
 2. `city/state/country/venue`: use v2 fields when present (`country` = Portuguese name from countryCode via one table; unknown code → the code itself, never 'Exterior'); fall back to `parseLocation(location)` only when v2 fields are absent.
 3. `lat/lng`: store when present; else `coordsDaCompeticao` at read time as today.
 4. `registrationDeadline`: v2 value or NULL (column becomes nullable). Never the event date.
-5. `endDate`, `gi/nogi`, `kids`, `organizer`: store; nogi from title (`no-?gi|nogi`) only when the feed has no flag.
+5. `endDate`, `gi/nogi`, `kids`, `organizer` + `organizerId`: store; nogi from title (`no-?gi|nogi`) only when the feed has no flag.
 6. Retire: after a successful fetch, every scraper-owned row (id contains '|' or sourceKey set) with `date >= today` that is NOT in the feed: delete when it has no CompetitionEnrollment; otherwise keep and set `status = 'closed'`. Past rows are never touched. Log what was retired.
 7. `--dry-run` on `prisma/sync-events.ts`: fetch + compute create/update/retire and print them, write nothing. Safe against prod.
 8. `prisma/seed-competitions.ts` must never `deleteMany` the table; it upserts its rows by id, and refuses to run when DATABASE_URL looks like production unless `--force`.

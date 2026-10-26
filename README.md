@@ -84,14 +84,30 @@ cada fonte preenche só o que sabe. **Ausente = desconhecido, nunca chute.**
 | `lat` / `lng` | Smoothcomp/AJP (`0,0` e `null` ficam ausentes); as outras fontes ganham o centro da cidade pelo geocodificador (abaixo) |
 | `geo` | de onde vieram `lat`/`lng`: `source` (a fonte, nível de ginásio) · `table` (`COORDS_BY_PLACE` em `src/normalize/places.ts`) · `nominatim` (cache `data/geocode-cache.json`). Sempre presente quando há coordenadas |
 | `gi` / `nogi` / `kids` | IBJJF `eventGroups` + título; Smoothcomp `categoryGroups` (`1` gi; `7`/`3`/`4`/`24` no-gi) + título |
-| `organizer` | `IBJJF`, `CBJJ` ou o host do Smoothcomp (`ligabjj.smoothcomp.com` → `LigaBJJ`; no host genérico, marcas conhecidas pelo título) |
+| `organizer` / `organizerId` | `nome` e `id` de uma entrada da base aprovada `data/organizadores.json` (`NAGA`/`naga`, `IBJJF`/`ibjjf`). Nunca "Smoothcomp" (é a plataforma de inscrição, não uma federação) nem subdomínio cru; sem casamento, os dois ficam ausentes. Ver **Organizadores** abaixo |
 | `sport` | `bjj` · `grappling` (os únicos publicados) · `judo` · `wrestling` · `mma` · `other` |
 | `registrationDeadlineISO` | só quando a página IBJJF/CBJJ declara ("Registration deadline" / "Prazo de Inscrição", ou a última faixa de preço); sempre anterior ao evento. Smoothcomp não expõe sem JS (Cloudflare) |
 
 Validação (`npm run validate`): schema + sem passado + sem `id`/`sourceId`
 duplicado + `lat`/`lng` no range + `countryCode` `^[A-Z]{2}$` + `geo` em toda
-linha com coordenadas. O contrato completo (produtor ↔ consumidor sensei-web)
+linha com coordenadas + `organizerId` da base com `organizer` igual ao `nome` dela. O contrato completo (produtor ↔ consumidor sensei-web)
 está em `docs/events-v2.md`.
+
+### Organizadores
+
+`data/organizadores.json` é a lista curada de quem o feed pode nomear (federações, ligas,
+circuitos e marcas de torneio). Cada entrada: `id` (kebab, vira `organizerId`), `nome` (vira
+`organizer`), `tipo` (`federacao` · `liga` · `circuito` · `organizador`), `site` (https que prova que
+existe: o site oficial, senão a casa dela no Smoothcomp), `hosts` (subdomínios do Smoothcomp),
+`padroes` (regex de título, ≥ 3 caracteres, sem acento/caixa, com borda de palavra) e `cor` opcional.
+
+O resolvedor (`src/normalize/organizador.ts`) roda em toda fonte: primeiro o que a fonte afirma
+(subdomínio do evento no Smoothcomp; organizador declarado pelo adapter nos calendários de
+federação, `CBJJ/FPJJ` → o primeiro da base), depois os padrões de título (o trecho mais longo
+vence; casamento colado a "rules"/"reglas"/"regras" não conta), senão nada. Para incluir uma
+organização: confirme que ela roda eventos recorrentes (torneio interno de academia não entra),
+ache o site, adicione a entrada e rode os testes + `npm run scrape && npm run validate`. Detalhes em
+`docs/events-v2.md`.
 
 ### Geocodificação
 
