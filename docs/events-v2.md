@@ -19,7 +19,8 @@ consumer on v1 keeps working and a producer can roll fields out one source at a 
 | city | string? | v2 | city only, trimmed, title-cased when the source shouts; no UF/state glued on |
 | state | string? | v2 | region code: Brazilian UF or US/CA/AU state code, uppercase 2 letters; absent elsewhere |
 | countryCode | string? | v2 | ISO 3166-1 alpha-2 (`BR`, `US`, `PT`). Smoothcomp `location_country`; IBJJF derived from city/region tables; CBJJ always `BR`. Absent when unknown — never guessed. |
-| lat, lng | number? | v2 | WGS84 decimal degrees. Smoothcomp and AJP `location_lat/long` (parseFloat; drop if NaN/0,0). Every other source: absent (the sync's place table fills them). |
+| lat, lng | number? | v2 | WGS84 decimal degrees. Smoothcomp and AJP `location_lat/long` (parseFloat; drop if NaN/0,0). Every other source: filled after dedup from the producer's city table (`src/normalize/places.ts`), else from the committed Nominatim cache (`data/geocode-cache.json`), keyed `city\|state\|countryCode`; a dedup winner without coordinates inherits the loser's. Still absent when the city is unknown to both. |
+| geo | enum? | v2 | where lat/lng came from: `source` (the feed's own coordinates, venue-level), `table` (city centre from the producer's table), `nominatim` (city centre from OpenStreetMap, cached). Present on every row that has lat/lng; never without them. A consumer may prefer its own venue lookup over a `table`/`nominatim` city centre. |
 | gi, nogi | boolean? | v2 | IBJJF eventGroups 'No-Gi' → nogi=true gi=false, else gi=true nogi=false; Smoothcomp categoryGroups: '1' gi, '7'/'3'/'4' nogi (can be both). Absent = unknown (consumer keeps its defaults). |
 | kids | boolean? | v2 | IBJJF eventGroups 'Kids' or title matches `\bkids?\b|juvenil|infantil|youth`; Smoothcomp same title rule. |
 | organizer | string? | v2 | who runs it, for the chip: `IBJJF`, `CBJJ`, `CBJJO`, `FJJRIO`, `FPJJ` (or `CBJJ/FPJJ` as the calendar writes it), `AJP`, `JJWL`, `NABJJF`, `SJJIF` (or the federation signing a sanctioned SJJIF title: `SJJCF`, `ASJJF`, `SJJJF`…), or the Smoothcomp host (`ligabjj.smoothcomp.com` → `LigaBJJ`; title-based for naga/grappling industries/fuji/adcc/newbreed/good fight when the subdomain is generic). |
@@ -35,7 +36,7 @@ Dedup: still `slug(title)|dateISO`, priority cbjj = cbjjo = fjjrio = fpjj (3) > 
 The same physical event on IBJJF and Smoothcomp (or AJP and Smoothcomp) with different titles stays two rows
 (accepted; the consumer may later merge by sourceId tables).
 
-Validation (src/validate.ts): no past rows, no duplicate id, no duplicate sourceId, lat/lng in range, countryCode 2 uppercase letters.
+Validation (src/validate.ts): no past rows, no duplicate id, no duplicate sourceId, lat/lng in range, countryCode 2 uppercase letters, every row with lat/lng carries `geo`.
 
 ## Consumer rules (sensei-web lib/bjj/syncCompetitions.ts)
 

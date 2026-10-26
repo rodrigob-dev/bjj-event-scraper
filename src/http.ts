@@ -27,8 +27,12 @@ interface HttpOptions {
   params?: Record<string, string | number | undefined>;
   /** Espera resposta JSON (seta Accept e faz .json()). Default true. */
   json?: boolean;
-  /** Pula a checagem de robots.txt (use só p/ buscar o próprio robots.txt). */
+  /** Pula a checagem de robots.txt (use só p/ buscar o próprio robots.txt ou uma
+   * API cuja política de uso rege o acesso, como o Nominatim). */
   skipRobots?: boolean;
+  /** Intervalo mínimo entre requisições ao host (ms). Default 2,5 s; só abaixe
+   * quando a política do serviço permitir (Nominatim: 1 req/s). Crawl-delay vence. */
+  minIntervalMs?: number;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -99,7 +103,7 @@ export async function httpGet<T = unknown>(url: string, opts: HttpOptions = {}):
   const parsed = new URL(finalUrl);
   const wantJson = opts.json !== false;
 
-  let minIntervalMs = MIN_INTERVAL_MS;
+  let minIntervalMs = opts.minIntervalMs ?? MIN_INTERVAL_MS;
   if (!opts.skipRobots) {
     const rules = await getRobots(parsed.origin);
     if (!isAllowed(rules, parsed.pathname)) {

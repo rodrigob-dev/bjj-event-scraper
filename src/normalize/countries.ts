@@ -29,6 +29,15 @@ function norm(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').replace(/\.$/, '').trim();
 }
 
+/** "US" → "United States" (ICU do Node); código desconhecido volta como veio. */
+export function countryNameOfCode(cc: string): string {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(cc) ?? cc;
+  } catch {
+    return cc;
+  }
+}
+
 /** "United States of America" → "US"; desconhecido → undefined. */
 export function countryCodeOfName(name: string | undefined | null): string | undefined {
   if (!name) return undefined;

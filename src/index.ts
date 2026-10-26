@@ -13,6 +13,7 @@ import { isPast, daysUntil } from './normalize/dates.js';
 import { closeBrowser } from './browser.js';
 import { hasDatabase, upsertEvents } from './db.js';
 import { fetchEventDetail, type EventDetail } from './enrich/ibjjf-detail.js';
+import { geocodeEvents, loadGeocodeCache, nominatimLookup, saveGeocodeCache } from './normalize/geocode.js';
 
 // Federações cuja imagem, prazo de inscrição e endereço vivem na página de
 // detalhe (não na API do calendário).
@@ -22,6 +23,7 @@ const DEADLINE_RECHECK_DAYS = 14;
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = resolve(ROOT, 'data/events.json');
+const GEOCODE_CACHE = resolve(ROOT, 'data/geocode-cache.json');
 
 /** Remove a DATABASE_URL de mensagens de erro — logs do Action são públicos. */
 function redactSecret(err: unknown): string {
@@ -150,9 +152,31 @@ async function main() {
       `(${fetched} páginas buscadas, resto via cache).`,
   );
 
-  const deduped = dedupe(collected, priorityBySource).sort((a, b) =>
-    a.dateISO.localeCompare(b.dateISO),
+  const deduped = dedupe(collected, priorityBySource);
+
+  // Coordenadas p/ quem só tem cidade: tabela → cache commitado → Nominatim
+  // (só com GEOCODE=1; a coleta diária não faz requisição nenhuma). Depois do
+  // dedup, p/ não buscar cidade de linha que vai cair.
+  const geoCache = await loadGeocodeCache(GEOCODE_CACHE);
+  const geo = await geocodeEvents(deduped, {
+    cache: geoCache,
+    online: process.env.GEOCODE === '1',
+    lookup: nominatimLookup,
+  });
+  if (geo.cacheChanged) await saveGeocodeCache(GEOCODE_CACHE, geoCache);
+  console.log(
+    `Geocodificação: ${geo.source} da fonte, ${geo.table} pela tabela, ${geo.nominatim} pelo cache/Nominatim ` +
+      `(${geo.requests} requisições${geo.cacheChanged ? ', cache atualizado' : ''}).`,
   );
+  if (geo.unresolved.length) {
+    console.log(
+      `::notice::[geocode] ${geo.unresolved.length} cidade(s) sem coordenadas` +
+        (process.env.GEOCODE === '1' ? '' : ' — rode GEOCODE=1 npm run scrape p/ buscar no Nominatim') +
+        `: ${geo.unresolved.join(', ')}`,
+    );
+  }
+
+  deduped.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
   await mkdir(dirname(OUTPUT), { recursive: true });
   await writeFile(OUTPUT, JSON.stringify(deduped, null, 2) + '\n', 'utf8');

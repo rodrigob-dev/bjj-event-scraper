@@ -117,6 +117,21 @@ describe('normalize + dedup ponta-a-ponta', () => {
     expect(out[0]!.source).toBe('cbjj');
   });
 
+  it('dedup: quem fica herda lat/lng de quem sai (federação sem coordenadas × Smoothcomp com)', () => {
+    const mk = (source: string, extra: Partial<ScrapedEvent> = {}): ScrapedEvent => ({
+      id: 'x|2026-06-05', title: 'Copa X', type: 'competition', date: '5 de Junho, 2026', location: 'SP',
+      ctaLabel: 'Ver Detalhes', icon: '🏆', dateISO: '2026-06-05', source, sourceUrl: 'https://x',
+      scrapedAt: '2026-05-01T00:00:00.000Z', ...extra,
+    });
+    const p = { cbjj: 3, smoothcomp: 1 };
+    const a = dedupe([mk('smoothcomp', { lat: -23.5, lng: -46.6 }), mk('cbjj', { city: 'Barueri' })], p);
+    expect(a[0]).toMatchObject({ source: 'cbjj', city: 'Barueri', lat: -23.5, lng: -46.6 });
+    const b = dedupe([mk('cbjj', { city: 'Barueri' }), mk('smoothcomp', { lat: -23.5, lng: -46.6 })], p);
+    expect(b[0]).toMatchObject({ source: 'cbjj', lat: -23.5, lng: -46.6 });
+    const c = dedupe([mk('cbjj', { lat: 1, lng: 2 }), mk('smoothcomp', { lat: -23.5, lng: -46.6 })], p);
+    expect(c[0]).toMatchObject({ source: 'cbjj', lat: 1, lng: 2 }); // as suas valem mais
+  });
+
   it('dedup trata acento/caixa como mesmo evento', () => {
     const mk = (title: string, source: string): ScrapedEvent => ({
       id: `x|2026-06-05`,

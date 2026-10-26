@@ -77,15 +77,29 @@ cada fonte preenche só o que sabe. **Ausente = desconhecido, nunca chute.**
 | `endDateISO` | último dia (`endDay` IBJJF, `enddate` Smoothcomp); igual a `dateISO` em evento de 1 dia. "Passado" = depois do último dia. |
 | `venue` | arena/ginásio (IBJJF `local`), nunca cidade |
 | `city` / `state` / `countryCode` | cidade limpa (`src/normalize/places.ts`: tira CEP, UF grudada, caixa alta); `state` = UF ou código US/CA/AU; `countryCode` ISO alpha-2 — Smoothcomp `location_country`, IBJJF pela tabela `src/adapters/ibjjf-places.ts` e pelo `<address>` da página de detalhe, CBJJ sempre `BR` |
-| `lat` / `lng` | só Smoothcomp (`0,0` e `null` ficam ausentes) |
+| `lat` / `lng` | Smoothcomp/AJP (`0,0` e `null` ficam ausentes); as outras fontes ganham o centro da cidade pelo geocodificador (abaixo) |
+| `geo` | de onde vieram `lat`/`lng`: `source` (a fonte, nível de ginásio) · `table` (`COORDS_BY_PLACE` em `src/normalize/places.ts`) · `nominatim` (cache `data/geocode-cache.json`). Sempre presente quando há coordenadas |
 | `gi` / `nogi` / `kids` | IBJJF `eventGroups` + título; Smoothcomp `categoryGroups` (`1` gi; `7`/`3`/`4`/`24` no-gi) + título |
 | `organizer` | `IBJJF`, `CBJJ` ou o host do Smoothcomp (`ligabjj.smoothcomp.com` → `LigaBJJ`; no host genérico, marcas conhecidas pelo título) |
 | `sport` | `bjj` · `grappling` (os únicos publicados) · `judo` · `wrestling` · `mma` · `other` |
 | `registrationDeadlineISO` | só quando a página IBJJF/CBJJ declara ("Registration deadline" / "Prazo de Inscrição", ou a última faixa de preço); sempre anterior ao evento. Smoothcomp não expõe sem JS (Cloudflare) |
 
 Validação (`npm run validate`): schema + sem passado + sem `id`/`sourceId`
-duplicado + `lat`/`lng` no range + `countryCode` `^[A-Z]{2}$`. O contrato
-completo (produtor ↔ consumidor sensei-web) está em `docs/events-v2.md`.
+duplicado + `lat`/`lng` no range + `countryCode` `^[A-Z]{2}$` + `geo` em toda
+linha com coordenadas. O contrato completo (produtor ↔ consumidor sensei-web)
+está em `docs/events-v2.md`.
+
+### Geocodificação
+
+Depois do dedup, toda linha com `city` + `countryCode` e sem `lat`/`lng` passa por
+`src/normalize/geocode.ts`: primeiro a tabela `COORDS_BY_PLACE` (`src/normalize/places.ts`,
+chave `cidade|região|país`), depois o cache `data/geocode-cache.json` (commitado), e só então —
+e só com `GEOCODE=1` — o Nominatim (OpenStreetMap). A coleta diária roda sem `GEOCODE` e não
+faz nenhuma requisição; quando o log mostrar `::notice::[geocode] N cidade(s) sem coordenadas`,
+rode `GEOCODE=1 npm run scrape` uma vez e commite o cache. Um miss fica no cache como `null`
+(apague a entrada para tentar de novo); cidade estável vale promover do cache para a tabela.
+Política do Nominatim cumprida: 1 req/s, User-Agent identificável, resultado cacheado. Um
+vencedor de dedup sem coordenadas herda as do perdedor (mesmo evento, mesmo ginásio).
 
 ## Integração com o app
 

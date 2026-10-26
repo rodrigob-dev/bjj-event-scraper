@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parsePlace, titleCaseIfShouting, regionCode, ufOfBrazilianCity } from '../src/normalize/places.js';
+import { parsePlace, titleCaseIfShouting, regionCode, regionName, ufOfBrazilianCity } from '../src/normalize/places.js';
 
 describe('parsePlace — formatos vistos no Smoothcomp', () => {
   const cases: Array<[string, string | undefined, string | undefined, { city?: string; state?: string }]> = [
@@ -82,5 +82,16 @@ describe('ufOfBrazilianCity', () => {
     expect(ufOfBrazilianCity('Sao Paulo')).toBe('SP');
     expect(ufOfBrazilianCity('Francisco Beltrão')).toBe('PR');
     expect(ufOfBrazilianCity('Atlantis')).toBeUndefined();
+  });
+});
+
+describe('regionName — código → nome por extenso p/ consultas', () => {
+  it('US/BR/CA/AU; código ou país fora da tabela → undefined', () => {
+    expect(regionName('NV', 'US')).toBe('Nevada');
+    expect(regionName('sp', 'BR')).toBe('Sao Paulo');
+    expect(regionName('ON', 'CA')).toBe('Ontario');
+    expect(regionName('NSW', 'AU')).toBe('New South Wales');
+    expect(regionName('ZZ', 'US')).toBeUndefined();
+    expect(regionName('NV', 'FR')).toBeUndefined();
   });
 });

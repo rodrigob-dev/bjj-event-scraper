@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const eventTypeSchema = z.enum(['competition', 'promotion', 'open_mat', 'seminar']);
 export const sportSchema = z.enum(['bjj', 'grappling', 'judo', 'wrestling', 'mma', 'other']);
+export const geoSourceSchema = z.enum(['source', 'table', 'nominatim']);
 
 const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'deve ser YYYY-MM-DD');
 const httpUrl = (field: string) =>
@@ -47,6 +48,7 @@ export const scrapedEventSchema = z
     organizer: z.string().min(1).optional(),
     sport: sportSchema.optional(),
     registrationDeadlineISO: isoDay.optional(),
+    geo: geoSourceSchema.optional(),
   })
   .refine((e) => !e.endDateISO || e.endDateISO >= e.dateISO, {
     message: 'endDateISO não pode vir antes de dateISO',
@@ -59,6 +61,10 @@ export const scrapedEventSchema = z
   .refine((e) => !(e.lat === 0 && e.lng === 0), {
     message: 'lat/lng 0,0 é "não geocodificado", não uma posição',
     path: ['lat'],
+  })
+  .refine((e) => !e.geo || e.lat !== undefined, {
+    message: 'geo diz de onde vieram lat/lng: sem coordenadas não há geo',
+    path: ['geo'],
   })
   .refine((e) => !e.registrationDeadlineISO || e.registrationDeadlineISO < e.dateISO, {
     message: 'registrationDeadlineISO deve ser anterior ao evento (nunca a data dele)',

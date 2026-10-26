@@ -45,6 +45,12 @@ describe('schema v2', () => {
     expect(scrapedEventSchema.safeParse({ ...base, registrationDeadlineISO: '2026-06-05' }).success).toBe(false);
     expect(scrapedEventSchema.safeParse({ ...base, registrationDeadlineISO: '2026-06-04' }).success).toBe(true);
   });
+  it('geo: aceito com lat/lng, rejeitado sem coordenadas ou fora do enum', () => {
+    expect(scrapedEventSchema.safeParse({ ...base, lat: -22.9, lng: -43.2, geo: 'table' }).success).toBe(true);
+    expect(scrapedEventSchema.safeParse({ ...base, lat: -22.9, lng: -43.2 }).success).toBe(true); // linha só é marcada depois
+    expect(scrapedEventSchema.safeParse({ ...base, geo: 'nominatim' }).success).toBe(false);
+    expect(scrapedEventSchema.safeParse({ ...base, lat: -22.9, lng: -43.2, geo: 'google' }).success).toBe(false);
+  });
   it('rejeita sourceId sem o prefixo da fonte e sport fora do enum', () => {
     expect(scrapedEventSchema.safeParse({ ...base, sourceId: '3121' }).success).toBe(false);
     expect(scrapedEventSchema.safeParse({ ...base, sport: 'karate' }).success).toBe(false);

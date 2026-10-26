@@ -33,6 +33,10 @@ export function findInvariantErrors(events: ScrapedEventParsed[], now: Date = ne
   dupOf((e) => e.id, 'id(s)');
   dupOf((e) => e.sourceId, 'sourceId(s)');
 
+  // O geocodificador marca toda linha com coordenadas; sem marca, a etapa foi pulada.
+  const unmarked = events.filter((e) => e.lat !== undefined && !e.geo);
+  if (unmarked.length) errors.push(`${unmarked.length} evento(s) com lat/lng sem geo: ${unmarked.slice(0, 5).map((e) => e.id).join(', ')}`);
+
   return errors;
 }
 
@@ -44,7 +48,8 @@ export function coverageSummary(events: ScrapedEventParsed[]): string {
     const n = (f: (e: ScrapedEventParsed) => boolean) => rows.filter(f).length;
     return (
       `  ${s}: ${rows.length} eventos · país ${n((e) => !!e.countryCode)} · cidade ${n((e) => !!e.city)} · ` +
-      `estado ${n((e) => !!e.state)} · lat/lng ${n((e) => e.lat !== undefined)} · fim ${n((e) => !!e.endDateISO)} · ` +
+      `estado ${n((e) => !!e.state)} · lat/lng ${n((e) => e.lat !== undefined)} ` +
+      `(tabela ${n((e) => e.geo === 'table')}, nominatim ${n((e) => e.geo === 'nominatim')}) · fim ${n((e) => !!e.endDateISO)} · ` +
       `prazo ${n((e) => !!e.registrationDeadlineISO)} · nogi ${n((e) => e.nogi === true)} · kids ${n((e) => e.kids === true)}`
     );
   });

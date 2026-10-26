@@ -38,12 +38,17 @@ export interface EventDetails {
   registrationDeadlineISO?: string; // YYYY-MM-DD, só quando a fonte declara — nunca a data do evento
 }
 
+export type GeoSource = 'source' | 'table' | 'nominatim';
+
 // Evento normalizado e versionado em data/events.json.
 // Estende BJJEvent com proveniência. O app pode ignorar os campos extras
 // ou usar `sourceUrl` como href do CTA.
 export interface ScrapedEvent extends BJJEvent, EventDetails {
   dateISO: string; // "2026-01-24" — canônico p/ ordenar e dedup
   endDateISO?: string; // último dia; igual a dateISO em evento de 1 dia
+  // De onde vieram lat/lng: a própria fonte, a tabela de cidades ou o Nominatim
+  // (cache em data/geocode-cache.json). Sempre presente quando há lat/lng.
+  geo?: GeoSource;
   source: string; // "ibjjf" | "cbjj" | "smoothcomp"
   sourceUrl: string; // URL de detalhe/inscrição
   imageUrl?: string; // foto/capa real do evento (ex: Smoothcomp cover_image)

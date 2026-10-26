@@ -96,6 +96,16 @@ export function norm(s: string): string {
     .trim();
 }
 
+const NAMES_BY_CODE: Record<string, Record<string, string>> = Object.fromEntries(
+  Object.entries(REGIONS).map(([cc, byName]) => [cc, Object.fromEntries(Object.entries(byName).map(([name, code]) => [code, name]))]),
+);
+
+/** "NV" + "US" → "Nevada"; "SP" + "BR" → "Sao Paulo" (sem acento, como a tabela). Sem tabela → undefined. */
+export function regionName(code: string, countryCode: string): string | undefined {
+  const name = NAMES_BY_CODE[countryCode]?.[code.toUpperCase()];
+  return name ? name.replace(/\b\w/g, (c) => c.toUpperCase()) : undefined;
+}
+
 /** Código de região de um trecho ("SC", "Bahia", "New South Wales") no país dado. */
 export function regionCode(token: string, countryCode?: string): string | undefined {
   if (!countryCode) return undefined;
@@ -229,4 +239,36 @@ export function parsePlace(raw: string, countryCode?: string, countryHuman?: str
   }
 
   return { ...(city ? { city } : {}), ...(state ? { state } : {}) };
+}
+
+// Coordenadas de cidade (centro, WGS84) p/ as fontes que só dizem a cidade:
+// IBJJF/CBJJ/JJWL/SJJIF/CBJJO/FJJRIO/FPJJ/NABJJF e Smoothcomp sem location_lat.
+// Chave = placeKey (cidade normalizada | região | país). Entradas resolvidas
+// pelo Nominatim (OpenStreetMap) na coleta de 2026-10-25 e conferidas à mão;
+// cidade nova cai no cache data/geocode-cache.json (ver src/normalize/geocode.ts).
+export const COORDS_BY_PLACE: Record<string, [lat: number, lng: number]> = {
+  'sao paulo|SP|BR': [-23.5507, -46.6334],
+  'rio de janeiro|RJ|BR': [-22.9111, -43.2095],
+  'las vegas|NV|US': [36.1673, -115.1485],
+};
+
+/** "Las Vegas" / "NV" / "US" → "las vegas|NV|US"; sem região → "cidade||país". */
+export function placeKey(city: string, state: string | undefined, countryCode: string): string {
+  return `${norm(city)}|${state ?? ''}|${countryCode}`;
+}
+
+/**
+ * Coordenadas da tabela. Sem região na linha, aceita a entrada da cidade sem
+ * região ou, se só houver uma no país, a com região ("Boston||US" → "boston|MA|US").
+ */
+export function coordsOfPlace(city: string, state: string | undefined, countryCode: string): [number, number] | undefined {
+  const exact = COORDS_BY_PLACE[placeKey(city, state, countryCode)];
+  if (exact) return exact;
+  const bare = COORDS_BY_PLACE[placeKey(city, undefined, countryCode)];
+  if (bare) return bare;
+  if (state) return undefined;
+  const prefix = `${norm(city)}|`;
+  const suffix = `|${countryCode}`;
+  const hits = Object.keys(COORDS_BY_PLACE).filter((k) => k.startsWith(prefix) && k.endsWith(suffix));
+  return hits.length === 1 ? COORDS_BY_PLACE[hits[0]!] : undefined;
 }
