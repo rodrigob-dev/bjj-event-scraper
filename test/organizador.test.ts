@@ -87,6 +87,19 @@ describe('data/organizadores.json — invariantes da base', () => {
     }
   });
 
+  it('quem tem site oficial aponta para ele, não para uma página do Smoothcomp', () => {
+    // Achados em 2026-10-26: cada um destes sites linka a conta da organização no Smoothcomp ou se apresenta por ela.
+    const oficiais: Record<string, string> = {
+      sjjjf: 'sjjjf.org', 'bjjf-nl': 'bjjfederatie.nl', 'sport-jiu-jitsu-canada': 'www.sjjcanf.com',
+      'fjj-sc': 'www.fjj-sc.com.br', 'manitoba-jiu-jitsu': 'www.manitobajiujitsu.com', 'usa-grappling': 'www.usa-grappling.com',
+      'empire-grappling': 'www.empiregrapplingevents.com', 'odd-fox-events': 'oddfoxevents.co.uk', lutador: 'www.lutadoropen.com',
+    };
+    for (const [id, host] of Object.entries(oficiais)) expect(new URL(base.byId.get(id)!.site).hostname, id).toBe(host);
+    // Página de evento como site só fica quando não há site oficial (EJO, SIO).
+    const eventos = raw.filter((e) => /smoothcomp\.com\/[a-z]{2}\/event\//.test(e.site)).map((e) => e.id);
+    expect(eventos.sort()).toEqual(['ejo', 'sio']);
+  });
+
   it('o schema da entrada barra site http, padrão curto, host com maiúscula e campo a mais', () => {
     const ok = entry('x-y', ['abc'], ['xy']);
     expect(organizerEntrySchema.safeParse(ok).success).toBe(true);
